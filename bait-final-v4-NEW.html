@@ -1,0 +1,3367 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بيت الذكريات | خالد وفاطمة</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   VARIABLES
+══════════════════════════════════════ */
+:root {
+  --cream:#F5ECD7; --cream-dark:#EDD9B8; --gold:#C8963E; --gold-light:#D4A853;
+  --rose:#8B1A3C; --rose-light:#A83255; --brown:#6B3A2A; --brown-dark:#4A2518;
+  --beige:#D4B896; --beige-dark:#B8946E; --text:#3D1F10; --text-light:#6B4A3A;
+  --white:#FFFDF7; --sidebar-w:280px;
+}
+[data-theme="dark"] {
+  --cream:#0A0503; --cream-dark:#120906; --gold:#E2B45A; --gold-light:#F0CC80;
+  --rose:#D4366A; --rose-light:#E85080; --brown:#D4B896; --brown-dark:#EDD9B8;
+  --beige:#3D2418; --beige-dark:#2D1810; --text:#F0DFC0; --text-light:#C09870;
+  --white:#1A0C07;
+}
+
+/* ══════════════════════════════════════
+   BASE
+══════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Cairo',sans-serif;background:var(--cream);color:var(--text);overflow-x:hidden;transition:background .4s,color .4s;}
+
+/* PARTICLES — خلف كل شيء */
+canvas#particlesCanvas{position:fixed;inset:0;pointer-events:none;z-index:0;}
+
+/* ══════════════════════════════════════
+   LOADING SCREEN
+══════════════════════════════════════ */
+#loadingScreen{
+  position:fixed;inset:0;z-index:99999;
+  background:linear-gradient(135deg,#2A1008,#8B1A3C,#4A2518);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity .6s ease,visibility .6s ease;
+}
+@keyframes ldHeartbeat{0%{transform:scale(1);}14%{transform:scale(1.25);}28%{transform:scale(1);}42%{transform:scale(1.15);}70%{transform:scale(1);}}
+@keyframes ldFadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+@keyframes ldDots{0%,80%,100%{opacity:0;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+.ld-heart{animation:ldHeartbeat 1.2s ease-in-out infinite;font-size:5rem;margin-bottom:1.5rem;filter:drop-shadow(0 0 30px rgba(200,150,62,.6));}
+.ld-title{font-family:'Noto Naskh Arabic',serif;font-size:2.4rem;color:#F5ECD7;margin-bottom:.4rem;animation:ldFadeUp .8s .2s both;}
+.ld-sub{font-size:1rem;color:rgba(245,236,215,.6);margin-bottom:2.5rem;animation:ldFadeUp .8s .4s both;}
+.ld-bar-wrap{width:200px;height:4px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;animation:ldFadeUp .8s .6s both;}
+.ld-bar{height:100%;width:0%;background:linear-gradient(90deg,#C8963E,#F5ECD7,#C8963E);border-radius:4px;transition:width .05s linear;}
+.ld-dots{display:flex;gap:.5rem;margin-top:1.5rem;animation:ldFadeUp .8s .8s both;}
+.ld-dots span{width:8px;height:8px;background:#C8963E;border-radius:50%;animation:ldDots 1.4s ease-in-out infinite;}
+.ld-dots span:nth-child(2){animation-delay:.2s;}
+.ld-dots span:nth-child(3){animation-delay:.4s;}
+
+/* ══════════════════════════════════════
+   NOTIFICATION
+══════════════════════════════════════ */
+.notif{
+  position:fixed;top:80px;left:50%;
+  transform:translateX(-50%) translateY(-120px);
+  background:linear-gradient(135deg,var(--rose),var(--brown));
+  color:var(--cream);padding:.9rem 1.8rem;border-radius:50px;
+  box-shadow:0 10px 30px rgba(139,26,60,.4);
+  z-index:10000;font-size:1rem;font-weight:600;
+  opacity:0;transition:all .5s cubic-bezier(.34,1.56,.64,1);
+  display:flex;align-items:center;gap:.5rem;white-space:nowrap;
+}
+.notif.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.notif.photos{background:linear-gradient(135deg,#2d8a4e,#1a5c32);}
+.notif.promise{background:linear-gradient(135deg,var(--rose),var(--brown));}
+.notif.days{background:linear-gradient(135deg,#7b4fa6,#5a3080);}
+
+/* ══════════════════════════════════════
+   FLYING TEXT
+══════════════════════════════════════ */
+@keyframes flyAcross{from{transform:translateX(110vw);}to{transform:translateX(-110vw);}}
+.flying-text{
+  position:fixed;top:20%;right:0;
+  font-family:'Noto Naskh Arabic',serif;
+  font-size:1.1rem;color:var(--rose);
+  opacity:.18;pointer-events:none;
+  animation:flyAcross 22s linear infinite;
+  z-index:1;white-space:nowrap;
+}
+
+/* ══════════════════════════════════════
+   LOGIN
+══════════════════════════════════════ */
+.login-container{
+  position:fixed;inset:0;z-index:9000;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  transition:opacity .6s ease,visibility .6s ease;
+}
+.login-container.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+.login-bg{position:absolute;inset:0;z-index:0;}
+.login-bg img{width:100%;height:100%;object-fit:cover;}
+.login-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(74,37,24,.78),rgba(139,26,60,.68));}
+.login-box{
+  position:relative;z-index:1;
+  background:rgba(255,253,247,.97);
+  backdrop-filter:blur(20px);
+  border-radius:20px;
+  padding:3rem 2.5rem;
+  max-width:400px;width:90%;
+  box-shadow:0 30px 80px rgba(74,37,24,.4);
+  text-align:center;
+}
+[data-theme="dark"] .login-box{background:rgba(26,15,8,.97);}
+.login-icon{font-size:3.5rem;margin-bottom:1rem;}
+.login-box h1{font-family:'Noto Naskh Arabic',serif;font-size:2rem;color:var(--rose);margin-bottom:.4rem;}
+.login-box .subtitle{color:var(--text-light);margin-bottom:1.8rem;font-size:.95rem;}
+.input-group{margin-bottom:1rem;text-align:right;}
+.input-group label{display:block;margin-bottom:.4rem;color:var(--brown);font-weight:600;font-size:.9rem;}
+.input-group input,.input-group select{
+  width:100%;padding:.9rem 1rem;
+  border:2px solid var(--beige);border-radius:10px;
+  font-family:'Cairo',sans-serif;font-size:1rem;
+  background:var(--cream);color:var(--text);
+  outline:none;transition:border-color .25s;
+}
+.input-group input:focus,.input-group select:focus{border-color:var(--rose);}
+[data-theme="dark"] .input-group input,[data-theme="dark"] .input-group select{background:#120906;border-color:#3D2418;}
+.login-btn{
+  width:100%;padding:1rem;margin-top:.5rem;
+  background:linear-gradient(135deg,var(--rose),var(--brown));
+  color:var(--cream);border:none;border-radius:10px;
+  font-family:'Cairo',sans-serif;font-size:1.1rem;font-weight:700;
+  cursor:pointer;transition:all .3s;
+}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(139,26,60,.4);}
+.error-msg{color:#c0392b;font-size:.9rem;margin-top:.8rem;min-height:1.2rem;display:none;}
+
+/* ══════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════ */
+.sidebar{
+  width:var(--sidebar-w);
+  background:rgba(255,253,247,.97);
+  backdrop-filter:blur(20px);
+  border-left:1px solid rgba(212,184,150,.4);
+  position:fixed;top:0;right:0;
+  height:100vh;z-index:5000;
+  display:flex;flex-direction:column;
+  transform:translateX(110%);
+  transition:transform .4s cubic-bezier(.16,1,.3,1),box-shadow .4s;
+  box-shadow:-4px 0 30px rgba(107,58,42,.12);
+  overflow:hidden;
+}
+[data-theme="dark"] .sidebar{background:rgba(26,15,8,.97);border-left-color:rgba(90,58,37,.4);}
+.sidebar.open{transform:translateX(0);box-shadow:-8px 0 40px rgba(107,58,42,.25);}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:4999;display:none;backdrop-filter:blur(2px);}
+.sidebar-overlay.show{display:block;}
+.sidebar-header{padding:1.5rem 1.2rem 1rem;border-bottom:1px solid rgba(212,184,150,.3);flex-shrink:0;}
+.sidebar-logo{font-family:'Noto Naskh Arabic',serif;font-size:1.4rem;color:var(--rose);cursor:pointer;display:block;margin-bottom:.8rem;}
+.sidebar-logo span{color:var(--gold);}
+.sidebar-meta{display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:var(--text-light);}
+.sidebar-days-pill{background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;padding:.2rem .7rem;border-radius:8px;font-size:.75rem;font-weight:700;}
+.sidebar-nav{flex:1;overflow-y:auto;padding:1rem .8rem;scrollbar-width:thin;scrollbar-color:var(--beige) transparent;}
+.sidebar-nav::-webkit-scrollbar{width:4px;}
+.sidebar-nav::-webkit-scrollbar-thumb{background:var(--beige);border-radius:2px;}
+.nav-section-title{font-size:.68rem;letter-spacing:1px;color:var(--gold);font-weight:700;text-transform:uppercase;padding:.8rem .4rem .4rem;opacity:.8;}
+.nav-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem;}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:.3rem;
+  padding:.75rem .4rem;border-radius:10px;cursor:pointer;
+  border:none;background:transparent;color:var(--text-light);
+  font-family:'Cairo',sans-serif;font-size:.78rem;font-weight:600;
+  transition:all .25s;position:relative;text-align:center;line-height:1.2;width:100%;
+}
+.nav-item:hover{background:rgba(139,26,60,.08);color:var(--rose);transform:translateY(-2px);}
+.nav-item.active{background:linear-gradient(135deg,rgba(139,26,60,.12),rgba(200,150,62,.1));color:var(--rose);border:1px solid rgba(139,26,60,.2);}
+.nav-item .nav-emoji{font-size:1.4rem;}
+.nav-badge{position:absolute;top:4px;right:4px;background:var(--rose);color:#fff;font-size:.6rem;padding:.1rem .35rem;border-radius:8px;display:none;font-weight:700;}
+.nav-badge.show{display:block;}
+.sidebar-footer{padding:.8rem 1rem;border-top:1px solid rgba(212,184,150,.3);display:flex;gap:.5rem;flex-shrink:0;}
+.sidebar-footer-btn{flex:1;padding:.55rem .6rem;border-radius:10px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.3rem;}
+.btn-dark-toggle{background:var(--beige);color:var(--brown);}
+.btn-dark-toggle:hover{background:var(--gold);color:#fff;}
+.btn-logout{background:rgba(139,26,60,.1);color:var(--rose);}
+.btn-logout:hover{background:var(--rose);color:#fff;}
+
+/* ══════════════════════════════════════
+   FAB SIDEBAR BUTTON
+══════════════════════════════════════ */
+.sidebar-fab{
+  position:fixed;top:50%;right:0;
+  transform:translateY(-50%);
+  width:48px;height:56px;
+  background:linear-gradient(135deg,var(--rose),var(--brown));
+  border-radius:12px 0 0 12px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  z-index:6000;border:none;
+  box-shadow:-4px 0 20px rgba(139,26,60,.35);
+  transition:all .3s cubic-bezier(.16,1,.3,1);
+}
+.sidebar-fab:hover{width:56px;}
+.sidebar-fab-icon{font-size:1.4rem;color:#fff;transition:transform .4s;}
+.sidebar-fab.open-state{right:var(--sidebar-w);}
+.sidebar-fab.open-state .sidebar-fab-icon{transform:rotate(180deg);}
+
+/* ══════════════════════════════════════
+   TOP BAR (mobile)
+══════════════════════════════════════ */
+.top-bar{
+  display:none;position:fixed;top:0;left:0;right:0;
+  background:rgba(255,253,247,.96);backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(212,184,150,.4);
+  padding:.7rem 1rem;z-index:4998;
+  align-items:center;justify-content:space-between;
+}
+[data-theme="dark"] .top-bar{background:rgba(26,15,8,.96);}
+.top-bar-logo{font-family:'Noto Naskh Arabic',serif;font-size:1.2rem;color:var(--rose);cursor:pointer;}
+.top-bar-logo span{color:var(--gold);}
+.top-bar-right{display:flex;gap:.5rem;align-items:center;}
+.top-bar-btn{background:none;border:none;cursor:pointer;font-size:1.1rem;padding:.3rem;color:var(--text-light);transition:color .2s;}
+.top-bar-btn:hover{color:var(--rose);}
+
+/* ══════════════════════════════════════
+   BOTTOM BAR (mobile)
+══════════════════════════════════════ */
+.bottom-bar{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  background:rgba(255,253,247,.97);backdrop-filter:blur(20px);
+  border-top:1px solid rgba(212,184,150,.4);
+  z-index:5000;padding:.4rem .3rem calc(.4rem + env(safe-area-inset-bottom));
+}
+[data-theme="dark"] .bottom-bar{background:rgba(26,15,8,.97);border-top-color:rgba(90,58,37,.4);}
+.bottom-bar-scroll{display:flex;gap:0;}
+.bottom-item{
+  display:flex;flex-direction:column;align-items:center;gap:.15rem;
+  padding:.4rem .2rem;border-radius:8px;cursor:pointer;
+  border:none;background:transparent;color:var(--text-light);
+  font-family:'Cairo',sans-serif;font-size:.65rem;font-weight:600;
+  transition:all .2s;flex:1;position:relative;white-space:nowrap;
+}
+.bottom-item .bottom-emoji{font-size:1.25rem;}
+.bottom-item:hover,.bottom-item.active{color:var(--rose);background:rgba(139,26,60,.08);}
+.bottom-badge{position:absolute;top:2px;right:2px;background:var(--rose);color:#fff;font-size:.55rem;padding:.1rem .3rem;border-radius:6px;display:none;font-weight:700;}
+.bottom-badge.show{display:block;}
+#moreMenu{
+  position:fixed;bottom:70px;left:0;right:0;
+  background:rgba(255,253,247,.98);backdrop-filter:blur(20px);
+  border-top:1px solid rgba(212,184,150,.4);
+  padding:1rem;z-index:5001;display:none;
+}
+[data-theme="dark"] #moreMenu{background:rgba(26,15,8,.98);}
+
+/* ══════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════ */
+.app-shell{display:flex;min-height:100vh;}
+.main-content{flex:1;min-height:100vh;position:relative;z-index:1;}
+
+/* ══════════════════════════════════════
+   PAGES — نظام الصفحات
+══════════════════════════════════════ */
+.page{display:none;min-height:100vh;}
+.page.active{display:block;animation:pageIn .4s cubic-bezier(.16,1,.3,1);}
+@keyframes pageIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+/* خلفيات الصفحات — fixed تحت المحتوى */
+.page-bg{
+  position:fixed;inset:0;
+  z-index:-1;pointer-events:none;
+  display:none;
+}
+.page-bg img{width:100%;height:100%;object-fit:cover;object-position:center;}
+.page-bg-overlay{position:absolute;inset:0;}
+
+/* المحتوى فوق الخلفية */
+.page > .container,
+.page > div:not(.page-bg),
+.page > section,
+.page > nav {
+  position:relative;z-index:1;
+}
+
+/* ══════════════════════════════════════
+   SHARED ELEMENTS
+══════════════════════════════════════ */
+.ornament{text-align:center;color:var(--gold);font-size:1.2rem;letter-spacing:.3rem;margin:1.5rem 0;opacity:.7;}
+.ornament::before,.ornament::after{content:'';display:inline-block;width:60px;height:1px;background:var(--gold);vertical-align:middle;margin:0 .8rem;opacity:.5;}
+.section-title{font-family:'Noto Naskh Arabic',serif;text-align:center;font-size:2.4rem;color:var(--rose);margin-bottom:.5rem;}
+.container{max-width:820px;margin:0 auto;padding:0 1.5rem;}
+.back-btn{
+  display:inline-flex;align-items:center;gap:.4rem;
+  margin-bottom:2rem;padding:.7rem 1.4rem;
+  background:var(--beige);color:var(--brown);
+  border-radius:8px;font-weight:600;font-size:.9rem;
+  transition:all .3s;border:none;cursor:pointer;
+  font-family:'Cairo',sans-serif;
+}
+.back-btn:hover{background:var(--rose);color:var(--cream);}
+.cta-button{
+  display:inline-block;padding:.85rem 2rem;
+  background:linear-gradient(135deg,var(--rose),var(--brown));
+  color:var(--cream);border-radius:8px;font-weight:700;
+  transition:all .3s;border:none;cursor:pointer;
+  font-family:'Cairo',sans-serif;font-size:.95rem;text-decoration:none;
+}
+.cta-button:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(139,26,60,.4);}
+.sync-status{font-size:.8rem;color:var(--text-light);margin-top:.5rem;}
+.sync-status.online{color:#27ae60;}
+
+/* ══════════════════════════════════════
+   SCROLL REVEAL
+══════════════════════════════════════ */
+.sr{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;}
+.sr.sr-scale{transform:scale(.94);}
+.sr.visible{opacity:1;transform:none;}
+.sr-delay-1{transition-delay:.1s;}
+.sr-delay-2{transition-delay:.2s;}
+.sr-delay-3{transition-delay:.3s;}
+
+/* ══════════════════════════════════════
+   HOME PAGE
+══════════════════════════════════════ */
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:7rem 5% 3rem;cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ctext y='26' font-size='24'%3E💕%3C/text%3E%3C/svg%3E") 16 16,auto;}
+.hero-content{max-width:680px;width:100%;display:flex;flex-direction:column;align-items:center;gap:2rem;}
+.hero-text{
+  text-align:center;
+  background:rgba(255,253,247,.9);backdrop-filter:blur(20px);
+  padding:2.5rem 2.8rem;border-radius:16px;
+  box-shadow:0 20px 60px rgba(107,58,42,.2),0 0 0 1px rgba(200,150,62,.3);
+}
+[data-theme="dark"] .hero-text{background:rgba(42,26,14,.92);}
+.hero-title{font-family:'Noto Naskh Arabic',serif;font-size:2.8rem;color:var(--rose);margin-bottom:.5rem;line-height:1.3;min-height:3.5rem;}
+.hero-subtitle{color:var(--gold);font-size:1.2rem;font-weight:500;margin-bottom:1.2rem;}
+.hero-p{font-size:1rem;color:var(--text-light);line-height:2;margin-bottom:1.5rem;}
+@keyframes glitch1{0%,90%,100%{transform:none;opacity:0;}92%{transform:translateX(-3px);opacity:.7;}94%{transform:translateX(3px);opacity:.7;}}
+@keyframes glitch2{0%,88%,100%{transform:none;opacity:0;}90%{transform:translateX(3px);opacity:.6;}92%{transform:translateX(-3px);opacity:.6;}}
+.glitch{position:relative;display:inline-block;}
+.glitch::before{content:attr(data-text);position:absolute;top:0;left:0;width:100%;height:100%;color:var(--gold);animation:glitch1 3s infinite;clip-path:polygon(0 20%,100% 20%,100% 40%,0 40%);font-family:'Noto Naskh Arabic',serif;}
+.glitch::after{content:attr(data-text);position:absolute;top:0;left:0;width:100%;height:100%;color:var(--rose-light);animation:glitch2 3s infinite;clip-path:polygon(0 60%,100% 60%,100% 80%,0 80%);font-family:'Noto Naskh Arabic',serif;}
+@keyframes heartbeat{0%,100%{transform:scale(1);}14%{transform:scale(1.12);}28%{transform:scale(1);}42%{transform:scale(1.08);}70%{transform:scale(1);}}
+.heartbeat-counter{
+  background:rgba(255,253,247,.92);backdrop-filter:blur(20px);
+  border-radius:16px;padding:1.8rem 2.5rem;text-align:center;
+  box-shadow:0 12px 40px rgba(107,58,42,.2),0 0 0 1px rgba(200,150,62,.2);
+  cursor:pointer;transition:all .3s;width:100%;max-width:420px;
+}
+[data-theme="dark"] .heartbeat-counter{background:rgba(42,26,14,.92);}
+.heartbeat-counter:hover{transform:translateY(-3px);}
+.heart-svg{display:block;margin:0 auto 1rem;animation:heartbeat 1.2s ease-in-out infinite;}
+.hb-days{font-family:'Noto Naskh Arabic',serif;font-size:4.5rem;font-weight:900;color:var(--rose);line-height:1;}
+.hb-label{color:var(--text-light);margin-top:.5rem;font-size:1rem;}
+.hb-hint{font-size:.8rem;color:var(--gold);margin-top:.4rem;opacity:.8;}
+
+/* Home quick nav */
+.home-nav-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;
+  max-width:480px;width:100%;
+}
+.home-nav-card{
+  background:rgba(255,253,247,.9);backdrop-filter:blur(12px);
+  border-radius:14px;padding:1rem .6rem;text-align:center;
+  cursor:pointer;border:none;font-family:'Cairo',sans-serif;
+  transition:all .25s cubic-bezier(.16,1,.3,1);
+  box-shadow:0 4px 14px rgba(107,58,42,.1),0 0 0 1px rgba(200,150,62,.18);
+}
+[data-theme="dark"] .home-nav-card{background:rgba(42,26,14,.9);}
+.home-nav-card:hover{transform:translateY(-4px) scale(1.04);box-shadow:0 12px 28px rgba(107,58,42,.2);}
+.home-nav-card .hnc-emoji{font-size:1.7rem;display:block;margin-bottom:.35rem;}
+.home-nav-card .hnc-label{font-size:.72rem;color:var(--text-light);font-weight:700;}
+
+.summary-section{padding:2rem 5% 5rem;}
+.summary-box{
+  max-width:680px;margin:0 auto;
+  background:rgba(255,253,247,.92);backdrop-filter:blur(20px);
+  border-radius:16px;padding:2.5rem;
+  box-shadow:0 16px 50px rgba(107,58,42,.15),0 0 0 1px rgba(200,150,62,.2);
+}
+[data-theme="dark"] .summary-box{background:rgba(42,26,14,.92);}
+.summary-title{font-family:'Noto Naskh Arabic',serif;font-size:1.8rem;color:var(--rose);text-align:center;}
+.summary-text{color:var(--text-light);line-height:2.2;font-size:1.05rem;}
+.summary-highlight{margin-top:1.5rem;padding:1.2rem 1.5rem;background:linear-gradient(135deg,rgba(200,150,62,.12),rgba(139,26,60,.08));border-right:4px solid var(--gold);border-radius:0 10px 10px 0;}
+
+/* ══════════════════════════════════════
+   MASONRY & CARDS (Amazon × Pinterest)
+══════════════════════════════════════ */
+.masonry{columns:2;column-gap:1rem;width:100%;}
+.masonry > *{break-inside:avoid;margin-bottom:1rem;display:inline-block;width:100%;}
+@media(max-width:600px){.masonry{columns:1;}}
+.masonry-3{columns:3;column-gap:1rem;}
+@media(max-width:900px){.masonry-3{columns:2;}}
+@media(max-width:520px){.masonry-3{columns:1;}}
+
+.m-card{
+  background:rgba(255,253,247,.95);backdrop-filter:blur(12px);
+  border-radius:14px;overflow:hidden;
+  box-shadow:0 4px 18px rgba(107,58,42,.1),0 0 0 1px rgba(200,150,62,.18);
+  transition:transform .25s cubic-bezier(.16,1,.3,1),box-shadow .25s;
+  position:relative;
+}
+[data-theme="dark"] .m-card{background:rgba(30,16,8,.95);}
+.m-card:hover{transform:translateY(-5px);box-shadow:0 16px 40px rgba(107,58,42,.2),0 0 0 1.5px rgba(200,150,62,.35);}
+.m-visual{
+  width:100%;min-height:120px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.8rem;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,var(--cream-dark),var(--beige));
+}
+[data-theme="dark"] .m-visual{background:linear-gradient(135deg,#1a0f08,#2a1a0e);}
+.m-visual.tall{min-height:180px;}
+.m-visual.short{min-height:70px;}
+.m-badge{
+  position:absolute;top:.7rem;right:.7rem;
+  padding:.2rem .6rem;border-radius:20px;
+  font-size:.66rem;font-weight:700;z-index:2;backdrop-filter:blur(6px);
+}
+.badge-rose{background:linear-gradient(135deg,var(--rose),var(--rose-light));color:#fff;}
+.badge-gold{background:linear-gradient(135deg,#C8963E,#E2B45A);color:#fff;}
+.badge-green{background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;}
+.badge-dark{background:rgba(0,0,0,.55);color:#fff;}
+.m-reveal{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(42,10,18,.85) 0%,transparent 55%);
+  opacity:0;transition:opacity .3s;
+  display:flex;align-items:flex-end;padding:1rem;pointer-events:none;
+}
+.m-card:hover .m-reveal{opacity:1;}
+.m-reveal span{color:#fff;font-size:.8rem;font-weight:600;}
+.m-body{padding:1rem 1.1rem 1.2rem;}
+.m-meta{font-size:.7rem;color:var(--gold);font-weight:700;margin-bottom:.3rem;letter-spacing:.3px;}
+.m-title{font-family:'Noto Naskh Arabic',serif;font-size:1.05rem;color:var(--rose);font-weight:700;margin-bottom:.25rem;line-height:1.4;}
+.m-text{font-size:.83rem;color:var(--text-light);line-height:1.7;}
+.m-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.7rem;padding-top:.7rem;border-top:1px solid rgba(212,184,150,.2);}
+.m-btn{
+  padding:.32rem .75rem;border-radius:20px;
+  border:1px solid rgba(200,150,62,.35);background:transparent;
+  color:var(--text-light);font-family:'Cairo',sans-serif;
+  font-size:.74rem;font-weight:600;cursor:pointer;transition:all .2s;
+}
+.m-btn:hover,.m-btn.primary{background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;border-color:transparent;}
+
+/* Amazon-dense timeline row */
+.tl-row{
+  display:grid;grid-template-columns:56px 1fr;gap:.9rem;align-items:start;
+  background:rgba(255,253,247,.94);backdrop-filter:blur(10px);
+  border-radius:14px;padding:1.1rem 1.2rem;
+  box-shadow:0 4px 16px rgba(107,58,42,.09),0 0 0 1px rgba(200,150,62,.16);
+  transition:transform .25s;position:relative;overflow:hidden;
+  margin-bottom:1rem;
+}
+[data-theme="dark"] .tl-row{background:rgba(30,16,8,.94);}
+.tl-row:hover{transform:translateX(-4px);}
+.tl-row::after{content:'';position:absolute;top:0;bottom:0;right:0;width:3px;background:linear-gradient(to bottom,var(--rose),var(--gold));}
+.tl-icon{font-size:2.2rem;text-align:center;padding-top:.2rem;}
+.tl-info .tl-date{font-size:.72rem;color:var(--gold);font-weight:700;margin-bottom:.2rem;}
+.tl-info .tl-title{font-family:'Noto Naskh Arabic',serif;font-size:1.05rem;color:var(--rose);margin-bottom:.25rem;}
+.tl-info .tl-text{font-size:.84rem;color:var(--text-light);line-height:1.7;}
+
+/* Amazon countdown rows */
+.cd-row{
+  display:grid;grid-template-columns:60px 1fr auto;gap:1rem;align-items:center;
+  background:rgba(255,253,247,.94);backdrop-filter:blur(12px);
+  border-radius:14px;padding:1.3rem;
+  box-shadow:0 4px 18px rgba(107,58,42,.1),0 0 0 1px rgba(200,150,62,.18);
+  transition:transform .25s;position:relative;overflow:hidden;margin-bottom:1rem;
+}
+[data-theme="dark"] .cd-row{background:rgba(30,16,8,.94);}
+.cd-row:hover{transform:translateY(-3px);}
+.cd-row::before{content:'';position:absolute;top:0;right:0;width:4px;height:100%;background:linear-gradient(to bottom,var(--rose),var(--gold));}
+.cd-emoji{font-size:2.6rem;text-align:center;}
+.cd-info .occ-name{font-family:'Noto Naskh Arabic',serif;font-size:1.1rem;color:var(--rose);}
+.cd-info .occ-date{font-size:.75rem;color:var(--gold);font-weight:700;margin-top:.2rem;}
+.cd-boxes{display:flex;gap:.4rem;}
+.cd-box{text-align:center;background:rgba(245,236,215,.8);border-radius:8px;padding:.45rem .6rem;min-width:50px;border:1px solid rgba(200,150,62,.2);}
+[data-theme="dark"] .cd-box{background:rgba(26,15,8,.8);}
+.cd-num{font-family:'Noto Naskh Arabic',serif;font-size:1.8rem;color:var(--rose);font-weight:700;line-height:1;display:block;}
+.cd-lbl{font-size:.62rem;color:var(--text-light);}
+@media(max-width:560px){.cd-boxes{display:none;}}
+
+/* Story masonry cards */
+.story-card{
+  background:rgba(255,253,247,.94);backdrop-filter:blur(10px);
+  border-radius:14px;padding:1.4rem;
+  box-shadow:0 4px 18px rgba(107,58,42,.1),0 0 0 1px rgba(200,150,62,.18);
+  transition:transform .25s;position:relative;overflow:hidden;
+}
+[data-theme="dark"] .story-card{background:rgba(30,16,8,.94);}
+.story-card:hover{transform:translateY(-4px);}
+.story-card::before{content:'';position:absolute;top:0;right:0;left:0;height:3px;background:linear-gradient(90deg,var(--rose),var(--gold));}
+.story-card-title{font-family:'Noto Naskh Arabic',serif;font-size:1.05rem;color:var(--rose);margin-bottom:.5rem;font-weight:700;}
+.story-card-text{font-size:.88rem;color:var(--text-light);line-height:1.8;white-space:pre-wrap;}
+.story-card-date{font-size:.7rem;color:var(--gold);font-weight:700;margin-top:.6rem;}
+
+/* ══════════════════════════════════════
+   MEMORY WALL
+══════════════════════════════════════ */
+.mem-card{
+  break-inside:avoid;display:inline-block;width:100%;
+  margin-bottom:1rem;border-radius:16px;overflow:hidden;
+  box-shadow:0 6px 24px rgba(107,58,42,.13),0 0 0 1px rgba(200,150,62,.18);
+  transition:transform .28s cubic-bezier(.16,1,.3,1),box-shadow .28s;
+  cursor:pointer;position:relative;
+  background:rgba(255,253,247,.95);backdrop-filter:blur(14px);
+}
+[data-theme="dark"] .mem-card{background:rgba(30,16,8,.95);}
+.mem-card:hover{transform:translateY(-6px) scale(1.015);box-shadow:0 20px 50px rgba(107,58,42,.25),0 0 0 1.5px rgba(200,150,62,.4);}
+.mem-visual{width:100%;min-height:120px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.mem-visual.tall{min-height:200px;}
+.mem-visual.short{min-height:85px;}
+.mem-visual img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease;}
+.mem-card:hover .mem-visual img{transform:scale(1.06);}
+.quote-visual{background:linear-gradient(135deg,var(--rose),var(--brown-dark));flex-direction:column;padding:1.4rem;text-align:center;gap:.5rem;}
+.q-mark{font-size:3.5rem;color:rgba(255,255,255,.2);line-height:.8;font-family:Georgia,serif;position:absolute;top:.4rem;right:.9rem;}
+.q-text{font-family:'Noto Naskh Arabic',serif;font-size:.98rem;color:#fff;line-height:1.8;position:relative;z-index:1;}
+.stat-visual{flex-direction:column;gap:.25rem;padding:1rem;}
+.stat-num{font-family:'Noto Naskh Arabic',serif;font-size:3.2rem;font-weight:900;line-height:1;}
+.stat-lbl{font-size:.78rem;font-weight:700;opacity:.8;}
+.emoji-visual{font-size:4.5rem;flex-direction:column;gap:.4rem;}
+.mem-hover-reveal{position:absolute;inset:0;background:linear-gradient(to top,rgba(42,10,18,.88) 0%,transparent 55%);opacity:0;transition:opacity .3s;display:flex;align-items:flex-end;padding:1rem;z-index:2;pointer-events:none;}
+.mem-card:hover .mem-hover-reveal{opacity:1;}
+.mem-hover-reveal span{color:#fff;font-size:.8rem;font-weight:600;line-height:1.5;}
+.mem-badge{position:absolute;top:.7rem;right:.7rem;padding:.2rem .6rem;border-radius:20px;font-size:.64rem;font-weight:700;z-index:3;backdrop-filter:blur(6px);}
+.mbadge-rose{background:rgba(139,26,60,.85);color:#fff;}
+.mbadge-gold{background:rgba(200,150,62,.9);color:#fff;}
+.mbadge-green{background:rgba(39,174,96,.85);color:#fff;}
+.mem-body{padding:.85rem 1rem 1rem;}
+.mem-meta{font-size:.68rem;color:var(--gold);font-weight:700;margin-bottom:.25rem;}
+.mem-title{font-family:'Noto Naskh Arabic',serif;font-size:.98rem;color:var(--rose);font-weight:700;margin-bottom:.2rem;line-height:1.4;}
+.mem-text{font-size:.8rem;color:var(--text-light);line-height:1.65;}
+.wall-header{text-align:center;padding:2rem 0 1.5rem;}
+.wall-header h2{font-family:'Noto Naskh Arabic',serif;font-size:2rem;background:linear-gradient(135deg,var(--rose),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.wall-header p{color:var(--text-light);font-size:.9rem;}
+.grad-rose{background:linear-gradient(135deg,#f8e8ed,#fbd5e0);}
+.grad-gold{background:linear-gradient(135deg,#fdf3e0,#f9e4b4);}
+.grad-blue{background:linear-gradient(135deg,#e8f4fd,#c5dff8);}
+.grad-green{background:linear-gradient(135deg,#e8f8f0,#b8ecd3);}
+.grad-purple{background:linear-gradient(135deg,#f0e8fb,#d9c1f5);}
+[data-theme="dark"] .grad-rose{background:linear-gradient(135deg,#2a0f18,#3d1525);}
+[data-theme="dark"] .grad-gold{background:linear-gradient(135deg,#1a1005,#2a1e08);}
+[data-theme="dark"] .grad-blue{background:linear-gradient(135deg,#051020,#0a1e35);}
+[data-theme="dark"] .grad-green{background:linear-gradient(135deg,#051208,#0a2010);}
+[data-theme="dark"] .grad-purple{background:linear-gradient(135deg,#100518,#1c0a2e);}
+
+/* ══════════════════════════════════════
+   COUNTDOWN PAGE
+══════════════════════════════════════ */
+#page-countdown,#page-timeline,#page-playlist,#page-canvas,
+#page-feelings,#page-photos,#page-dates,#page-messages,
+#page-problems,#page-promise,#page-story,#page-memory,#page-home{
+  padding:7rem 5% 5rem;
+}
+#page-home{padding:0;}
+
+/* ══════════════════════════════════════
+   PLAYLIST
+══════════════════════════════════════ */
+.mp-card{
+  background:rgba(255,253,247,.95);backdrop-filter:blur(16px);
+  border-radius:16px;padding:2rem;
+  box-shadow:0 16px 50px rgba(107,58,42,.15),0 0 0 1px rgba(200,150,62,.2);
+  margin-bottom:2rem;
+}
+[data-theme="dark"] .mp-card{background:rgba(30,16,8,.95);}
+.mp-album-wrap{width:120px;height:120px;margin:0 auto 1.5rem;position:relative;border-radius:50%;overflow:hidden;box-shadow:0 8px 25px rgba(107,58,42,.3);}
+.mp-album-img{width:100%;height:100%;background:linear-gradient(135deg,var(--rose),var(--gold));display:flex;align-items:center;justify-content:center;font-size:3rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.mp-album-wrap.spinning{animation:spin 4s linear infinite;}
+.mp-vinyl-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;background:var(--cream);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;}
+.mp-song-info{text-align:center;margin-bottom:1.2rem;}
+.mp-title{font-family:'Noto Naskh Arabic',serif;font-size:1.2rem;color:var(--rose);font-weight:700;}
+.mp-artist{font-size:.85rem;color:var(--text-light);margin-top:.2rem;}
+.mp-progress-wrap{margin-bottom:1rem;}
+.mp-progress-bar-bg{height:6px;background:var(--beige);border-radius:3px;cursor:pointer;overflow:hidden;}
+.mp-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--rose),var(--gold));border-radius:3px;transition:width .3s linear;}
+.mp-times{display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-light);margin-top:.3rem;}
+.mp-controls{display:flex;align-items:center;justify-content:center;gap:.8rem;margin-bottom:1rem;}
+.mp-ctrl{background:none;border:none;font-size:1.3rem;cursor:pointer;transition:transform .2s;padding:.3rem;}
+.mp-ctrl:hover{transform:scale(1.2);}
+.mp-ctrl-play{font-size:1.8rem;}
+.mp-ctrl.active{opacity:1;filter:drop-shadow(0 0 4px var(--gold));}
+.mp-vol-row{display:flex;align-items:center;gap:.7rem;}
+.mp-vol-slider{flex:1;accent-color:var(--rose);height:4px;}
+.playlist-add-box{background:rgba(255,253,247,.92);backdrop-filter:blur(12px);border-radius:14px;padding:1.5rem;box-shadow:0 4px 18px rgba(107,58,42,.1);}
+[data-theme="dark"] .playlist-add-box{background:rgba(30,16,8,.92);}
+.playlist-input-row{display:flex;gap:.6rem;flex-wrap:wrap;}
+.playlist-input{flex:1;min-width:150px;padding:.75rem 1rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;background:var(--cream);color:var(--text);outline:none;transition:border-color .25s;}
+.playlist-input:focus{border-color:var(--rose);}
+[data-theme="dark"] .playlist-input{background:#120906;border-color:#3D2418;}
+.add-song-btn{padding:.75rem 1.3rem;background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;border:none;border-radius:8px;font-family:'Cairo',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;}
+.no-songs{text-align:center;padding:2rem;color:var(--text-light);}
+@keyframes mpBars{0%,100%{height:4px;}50%{height:16px;}}
+.mp-bars{display:flex;align-items:flex-end;gap:2px;height:18px;}
+.mp-bars span{width:3px;background:var(--rose);border-radius:2px;animation:mpBars .8s ease infinite;}
+.mp-bars span:nth-child(2){animation-delay:.15s;}
+.mp-bars span:nth-child(3){animation-delay:.3s;}
+
+/* ══════════════════════════════════════
+   CANVAS
+══════════════════════════════════════ */
+.canvas-wrapper{background:rgba(255,253,247,.95);backdrop-filter:blur(14px);border-radius:16px;padding:1.2rem;box-shadow:0 8px 30px rgba(107,58,42,.15);}
+[data-theme="dark"] .canvas-wrapper{background:rgba(30,16,8,.95);}
+#loveCanvas{width:100%;border-radius:12px;border:2px solid rgba(200,150,62,.3);cursor:crosshair;display:block;touch-action:none;background:#fff;}
+.canvas-tool-btn,.canvas-action-btn{background:var(--beige);color:var(--brown);border:none;border-radius:8px;cursor:pointer;transition:all .2s;font-family:'Cairo',sans-serif;}
+.canvas-tool-btn.active{background:var(--rose);color:#fff;}
+.canvas-tool-btn:hover,.canvas-action-btn:hover{background:var(--rose);color:#fff;}
+.color-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .2s;flex-shrink:0;}
+.color-swatch.active,.color-swatch:hover{transform:scale(1.2);border-color:var(--text);}
+
+/* ══════════════════════════════════════
+   FEELINGS
+══════════════════════════════════════ */
+.feeling-card{
+  background:rgba(255,253,247,.94);backdrop-filter:blur(12px);
+  border-radius:14px;overflow:hidden;
+  box-shadow:0 4px 18px rgba(107,58,42,.1),0 0 0 1px rgba(200,150,62,.18);
+  transition:transform .25s;
+}
+[data-theme="dark"] .feeling-card{background:rgba(30,16,8,.94);}
+.feeling-card:hover{transform:translateY(-4px);}
+.feeling-input{width:100%;padding:.75rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;resize:vertical;min-height:65px;background:var(--cream);color:var(--text);outline:none;transition:border-color .25s;}
+.feeling-input:focus{border-color:var(--rose);}
+[data-theme="dark"] .feeling-input{background:#120906;border-color:#3D2418;}
+
+/* ══════════════════════════════════════
+   PROBLEMS
+══════════════════════════════════════ */
+.counter-box{
+  background:rgba(255,253,247,.94);backdrop-filter:blur(14px);
+  border-radius:16px;padding:2.5rem;text-align:center;
+  box-shadow:0 8px 30px rgba(107,58,42,.15),0 0 0 1px rgba(200,150,62,.2);
+  margin-bottom:1.5rem;
+}
+[data-theme="dark"] .counter-box{background:rgba(30,16,8,.94);}
+.counter-number{font-family:'Noto Naskh Arabic',serif;font-size:5rem;font-weight:700;color:var(--rose);display:block;line-height:1;}
+.counter-controls{display:flex;gap:1rem;justify-content:center;margin-top:1.2rem;}
+.counter-btn{
+  padding:.8rem 2rem;border-radius:50px;border:none;
+  font-size:1.5rem;font-weight:700;cursor:pointer;transition:all .25s;
+  font-family:'Cairo',sans-serif;
+}
+.btn-plus{background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;}
+.btn-minus{background:var(--beige);color:var(--brown);}
+.btn-plus:hover{transform:scale(1.08);}
+.btn-minus:hover{background:var(--beige-dark);}
+
+/* ══════════════════════════════════════
+   PROMISE
+══════════════════════════════════════ */
+#page-promise{
+  background:linear-gradient(135deg,rgba(42,10,18,.9),rgba(74,37,24,.85));
+  min-height:100vh;
+}
+.promise-box{
+  background:rgba(255,255,255,.08);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:20px;padding:3rem 2rem;text-align:center;max-width:500px;margin:0 auto;
+}
+.promise-counter{font-family:'Noto Naskh Arabic',serif;font-size:5rem;font-weight:900;color:#fff;line-height:1;margin:1rem 0;}
+.promise-btn{
+  margin-top:1.5rem;padding:1rem 2.5rem;
+  background:linear-gradient(135deg,var(--rose),var(--gold));
+  color:#fff;border:none;border-radius:50px;
+  font-family:'Cairo',sans-serif;font-size:1.05rem;font-weight:700;cursor:pointer;
+  transition:all .3s;box-shadow:0 8px 25px rgba(139,26,60,.4);
+}
+.promise-btn:hover{transform:translateY(-3px);box-shadow:0 14px 35px rgba(139,26,60,.5);}
+#page-promise .back-btn{background:rgba(255,255,255,.2);color:#fff;}
+
+/* ══════════════════════════════════════
+   PHOTOS
+══════════════════════════════════════ */
+.photos-box{
+  background:rgba(255,253,247,.94);backdrop-filter:blur(14px);
+  border-radius:16px;padding:3rem 2rem;text-align:center;
+  box-shadow:0 8px 30px rgba(107,58,42,.15),0 0 0 1px rgba(200,150,62,.2);
+  margin-bottom:1.5rem;
+}
+[data-theme="dark"] .photos-box{background:rgba(30,16,8,.94);}
+.photos-number{font-family:'Noto Naskh Arabic',serif;font-size:5rem;font-weight:900;color:var(--rose);line-height:1;}
+.photos-label{color:var(--text-light);margin-top:.5rem;font-size:1rem;}
+@keyframes celebrate{0%{transform:scale(0) rotate(-10deg);}60%{transform:scale(1.1) rotate(3deg);}100%{transform:scale(1) rotate(0);}}
+.celebration{display:none;margin-top:1.5rem;padding:1.5rem;background:linear-gradient(135deg,#ffd700,#ffed4e);border-radius:16px;text-align:center;}
+.celebration.show{display:block;animation:celebrate .8s ease;}
+
+/* ══════════════════════════════════════
+   DATES
+══════════════════════════════════════ */
+.date-card{
+  background:rgba(255,253,247,.94);backdrop-filter:blur(12px);
+  border-radius:14px;overflow:hidden;
+  box-shadow:0 4px 18px rgba(107,58,42,.1),0 0 0 1px rgba(200,150,62,.18);
+  transition:transform .25s;
+}
+[data-theme="dark"] .date-card{background:rgba(30,16,8,.94);}
+.date-card:hover{transform:translateY(-4px);}
+.date-display{font-size:1.1rem;color:var(--gold);font-weight:700;}
+.date-title{font-family:'Noto Naskh Arabic',serif;font-size:1.1rem;color:var(--rose);margin-top:.2rem;}
+.date-input{width:100%;padding:.7rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;resize:vertical;min-height:65px;background:var(--cream);color:var(--text);outline:none;transition:border-color .25s;}
+.date-input:focus{border-color:var(--rose);}
+[data-theme="dark"] .date-input{background:#120906;border-color:#3D2418;}
+
+/* ══════════════════════════════════════
+   MESSAGES
+══════════════════════════════════════ */
+.message-box{
+  background:rgba(255,253,247,.94);backdrop-filter:blur(14px);
+  border-radius:16px;padding:1.5rem;
+  box-shadow:0 4px 18px rgba(107,58,42,.1),0 0 0 1px rgba(200,150,62,.18);
+  margin-bottom:1.5rem;
+}
+[data-theme="dark"] .message-box{background:rgba(30,16,8,.94);}
+.message-textarea{
+  width:100%;padding:1rem;border:2px solid var(--beige);border-radius:10px;
+  font-family:'Cairo',sans-serif;font-size:.95rem;resize:vertical;min-height:90px;
+  background:var(--cream);color:var(--text);outline:none;transition:border-color .25s;
+}
+.message-textarea:focus{border-color:var(--rose);}
+[data-theme="dark"] .message-textarea{background:#120906;border-color:#3D2418;}
+.send-btn{
+  margin-top:.8rem;padding:.8rem 2rem;
+  background:linear-gradient(135deg,var(--rose),var(--brown));
+  color:#fff;border:none;border-radius:10px;
+  font-family:'Cairo',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;
+  transition:all .3s;display:flex;align-items:center;gap:.5rem;
+}
+.send-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(139,26,60,.4);}
+/* ══════════════════════════════════════
+   MESSAGES — Masonry + Variable bubble size
+══════════════════════════════════════ */
+
+/* Masonry grid بدل flex column */
+.messages-list{
+  columns:2;
+  column-gap:.9rem;
+  max-height:none;
+  padding:.2rem 0 1rem;
+}
+.messages-list::-webkit-scrollbar{width:4px;}
+.messages-list::-webkit-scrollbar-thumb{background:var(--beige);border-radius:2px;}
+@media(max-width:560px){.messages-list{columns:1;}}
+
+/* كل فقاعة break-inside:avoid */
+.msg-bubble{
+  break-inside:avoid;
+  display:flex;
+  align-items:flex-start;
+  gap:.55rem;
+  margin-bottom:.9rem;
+  animation:msgIn .35s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.msg-bubble.mine{flex-direction:row-reverse;}
+
+/* Avatar */
+.msg-avatar{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:.95rem;
+  flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+  margin-top:.15rem;
+}
+
+/* الفقاعة الداخلية — الحجم يتغير تلقائياً حسب المحتوى */
+.msg-inner{
+  width:100%;
+  background:rgba(255,253,247,.97);
+  backdrop-filter:blur(10px);
+  border-radius:14px 14px 4px 14px;
+  padding:.75rem .9rem .6rem;
+  box-shadow:0 3px 14px rgba(107,58,42,.11),0 0 0 1px rgba(200,150,62,.2);
+  position:relative;
+  word-break:break-word;
+}
+[data-theme="dark"] .msg-inner{background:rgba(26,14,7,.97);}
+
+/* رسائلي — لون مختلف */
+.msg-bubble.mine .msg-inner{
+  border-radius:14px 14px 14px 4px;
+  background:linear-gradient(135deg,rgba(139,26,60,.13),rgba(107,58,42,.09));
+  border:1px solid rgba(139,26,60,.22);
+  box-shadow:0 3px 14px rgba(139,26,60,.1),0 0 0 1px rgba(139,26,60,.15);
+}
+
+/* اسم المرسل */
+.msg-sender{
+  font-size:.68rem;color:var(--gold);
+  font-weight:700;margin-bottom:.3rem;
+  display:flex;align-items:center;gap:.3rem;
+}
+.msg-bubble.mine .msg-sender{color:var(--rose);}
+
+/* نص الرسالة — حجم متغير حسب الطول */
+.msg-text{
+  font-size:.92rem;color:var(--text);
+  line-height:1.75;
+}
+/* رسائل قصيرة — خط أكبر */
+.msg-bubble.short-msg .msg-text{font-size:1.05rem;font-weight:600;}
+/* رسائل طويلة — خط أصغر */
+.msg-bubble.long-msg .msg-text{font-size:.84rem;line-height:1.65;}
+
+/* وقت محسّن — أوضح وأجمل */
+.msg-time-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:.5rem;padding-top:.4rem;
+  border-top:1px solid rgba(200,150,62,.12);
+  gap:.4rem;
+}
+.msg-date{
+  font-size:.65rem;color:var(--text-light);
+  background:rgba(200,150,62,.1);
+  padding:.12rem .45rem;border-radius:6px;
+  font-weight:600;
+}
+.msg-hour{
+  font-size:.72rem;font-weight:700;
+  color:var(--gold);
+  display:flex;align-items:center;gap:.25rem;
+}
+.msg-hour::before{content:'🕐';font-size:.65rem;}
+.msg-bubble.mine .msg-hour{color:var(--rose);}
+
+/* شارة "أنا" */
+.msg-me-badge{
+  display:inline-flex;align-items:center;gap:.2rem;
+  background:linear-gradient(135deg,rgba(139,26,60,.15),rgba(200,150,62,.1));
+  border-radius:6px;padding:.1rem .4rem;
+  font-size:.62rem;font-weight:700;color:var(--rose);
+}
+
+.no-messages{text-align:center;padding:2.5rem;color:var(--text-light);}
+.msg-search-wrap{position:relative;margin-bottom:1rem;}
+.msg-search-input{width:100%;padding:.82rem 1rem .82rem 3rem;border:2px solid var(--beige);border-radius:50px;font-family:'Cairo',sans-serif;font-size:.93rem;background:var(--cream);color:var(--text);outline:none;transition:border-color .25s;}
+.msg-search-input:focus{border-color:var(--rose);}
+[data-theme="dark"] .msg-search-input{background:#120906;border-color:#3D2418;}
+.msg-search-icon{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--text-light);}
+.msg-search-count{font-size:.8rem;color:var(--gold);text-align:center;min-height:1.2rem;margin-top:.3rem;}
+.connection-status{text-align:center;padding:.5rem;border-radius:8px;font-size:.85rem;margin-bottom:1rem;display:none;}
+.connection-status.offline{background:rgba(231,76,60,.1);color:#e74c3c;display:block;}
+
+/* ══════════════════════════════════════
+   STORY
+══════════════════════════════════════ */
+.story-add-box{
+  background:rgba(255,253,247,.94);backdrop-filter:blur(12px);
+  border-radius:14px;padding:1.5rem;
+  box-shadow:0 4px 18px rgba(107,58,42,.1),0 0 0 1px rgba(200,150,62,.18);
+  margin-top:2rem;
+}
+[data-theme="dark"] .story-add-box{background:rgba(30,16,8,.94);}
+.story-input{
+  width:100%;padding:.8rem 1rem;border:2px solid var(--beige);border-radius:10px;
+  font-family:'Cairo',sans-serif;font-size:.95rem;
+  background:var(--cream);color:var(--text);outline:none;transition:border-color .25s;
+  margin-bottom:.8rem;
+}
+.story-input:focus{border-color:var(--rose);}
+[data-theme="dark"] .story-input{background:#120906;border-color:#3D2418;}
+.story-textarea{min-height:120px;resize:vertical;}
+
+/* ══════════════════════════════════════
+   READING MODE
+══════════════════════════════════════ */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.reading-overlay{position:fixed;inset:0;z-index:20000;background:var(--cream);overflow-y:auto;padding:4rem 2rem 6rem;display:none;}
+[data-theme="dark"] .reading-overlay{background:#0A0503;}
+.reading-overlay.show{display:block;animation:fadeInUp .4s cubic-bezier(.16,1,.3,1);}
+.reading-content{max-width:680px;margin:0 auto;}
+.reading-close-btn{position:fixed;top:1.2rem;left:1.2rem;background:var(--rose);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:20001;transition:all .2s;}
+.reading-close-btn:hover{transform:scale(1.1);}
+.reading-chapter{margin-bottom:3rem;padding-bottom:2rem;border-bottom:1px solid rgba(200,150,62,.2);}
+.reading-chapter:last-child{border-bottom:none;}
+.reading-chapter-title{font-family:'Noto Naskh Arabic',serif;font-size:1.5rem;color:var(--rose);margin-bottom:1rem;border-right:4px solid var(--gold);padding-right:1rem;}
+.reading-chapter-text{font-family:'Noto Naskh Arabic',serif;font-size:1.25rem;line-height:2.4;color:var(--text);}
+.reading-actions{position:fixed;bottom:1.5rem;right:50%;transform:translateX(50%);display:flex;gap:.8rem;z-index:20001;}
+.reading-action-btn{padding:.8rem 1.5rem;border-radius:50px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;font-size:.9rem;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,.2);transition:all .3s;display:flex;align-items:center;gap:.4rem;}
+.reading-action-btn:hover{transform:translateY(-2px);}
+.reading-action-pdf{background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;}
+.reading-action-close{background:var(--beige);color:var(--brown);}
+
+/* ══════════════════════════════════════
+   LOGOUT CONFIRM
+══════════════════════════════════════ */
+@keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+/* ══════════════════════════════════════
+   MOBILE
+══════════════════════════════════════ */
+@media(max-width:768px){
+  .top-bar{display:flex;}
+  .bottom-bar{display:block;}
+  .sidebar-fab{display:none;}
+  .back-btn{display:none;}
+  .counter-btn{min-height:50px;}
+  .nav-item{min-height:58px;}
+  #page-countdown,#page-timeline,#page-playlist,#page-canvas,
+  #page-feelings,#page-photos,#page-dates,
+  #page-problems,#page-promise,#page-story,#page-memory{
+    padding:5rem 4% 6rem;
+  }
+  #page-messages{
+    padding:5rem 0 0;
+  }
+}
+@media(min-width:769px){
+  .top-bar{display:none;}
+  .bottom-bar{display:none;}
+  .sidebar-fab{display:flex;}
+}
+
+/* ══════════════════════════════════════
+   TIMELINE — قابل للتعديل
+══════════════════════════════════════ */
+.tl-row.editing{
+  border:2px solid var(--rose);
+  box-shadow:0 0 0 4px rgba(139,26,60,.1),0 8px 30px rgba(107,58,42,.2);
+}
+.tl-row.editing::after{background:var(--rose);}
+
+/* أزرار التحكم على كل event */
+.tl-controls{
+  display:flex;gap:.4rem;align-items:center;
+  margin-top:.6rem;padding-top:.5rem;
+  border-top:1px solid rgba(200,150,62,.15);
+  opacity:0;transition:opacity .2s;
+}
+.tl-row:hover .tl-controls{opacity:1;}
+
+.tl-ctrl-btn{
+  padding:.28rem .65rem;border-radius:8px;border:none;
+  font-family:'Cairo',sans-serif;font-size:.72rem;font-weight:700;
+  cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:.25rem;
+}
+.tl-ctrl-edit{background:rgba(200,150,62,.15);color:var(--gold);}
+.tl-ctrl-edit:hover{background:var(--gold);color:#fff;}
+.tl-ctrl-del{background:rgba(139,26,60,.1);color:var(--rose);}
+.tl-ctrl-del:hover{background:var(--rose);color:#fff;}
+.tl-ctrl-save{background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;}
+.tl-ctrl-save:hover{transform:scale(1.04);}
+.tl-ctrl-cancel{background:var(--beige);color:var(--brown);}
+
+/* حقول التعديل */
+.tl-edit-wrap{display:flex;flex-direction:column;gap:.5rem;margin-top:.5rem;}
+.tl-edit-row{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+.tl-edit-input{
+  width:100%;padding:.6rem .8rem;
+  border:2px solid var(--beige);border-radius:8px;
+  font-family:'Cairo',sans-serif;font-size:.88rem;
+  background:var(--cream);color:var(--text);outline:none;
+  transition:border-color .25s;
+}
+.tl-edit-input:focus{border-color:var(--rose);}
+[data-theme="dark"] .tl-edit-input{background:#120906;border-color:#3D2418;}
+.tl-edit-textarea{min-height:80px;resize:vertical;}
+
+/* Badge "مضاف" للعناصر الجديدة */
+.tl-badge{
+  display:inline-block;padding:.12rem .5rem;border-radius:6px;
+  font-size:.62rem;font-weight:700;margin-right:.4rem;
+  background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;
+}
+.tl-badge-default{background:rgba(200,150,62,.2);color:var(--gold);}
+
+/* صندوق إضافة event جديد */
+.tl-add-box{
+  background:rgba(255,253,247,.95);backdrop-filter:blur(12px);
+  border-radius:14px;padding:1.4rem;
+  box-shadow:0 4px 18px rgba(107,58,42,.1),0 0 0 1px rgba(200,150,62,.18);
+  margin-top:1.5rem;border:2px dashed rgba(200,150,62,.4);
+}
+[data-theme="dark"] .tl-add-box{background:rgba(26,14,7,.95);}
+.tl-add-title{
+  font-family:'Noto Naskh Arabic',serif;font-size:1.1rem;
+  color:var(--rose);margin-bottom:1rem;
+  display:flex;align-items:center;gap:.5rem;
+}
+.tl-sync{font-size:.78rem;color:var(--text-light);margin-top:.5rem;}
+.tl-sync.ok{color:#27ae60;}
+.tl-sync.err{color:#e74c3c;}
+
+
+/* ══════════════════════════════════════
+   HEART LOCK PAGE
+══════════════════════════════════════ */
+.heart-lock-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 1.5rem 6rem;text-align:center;gap:0;}
+.hl-icon-wrap{position:relative;width:120px;height:120px;margin:0 auto 2rem;cursor:pointer;}
+.hl-heart{font-size:7rem;line-height:1;filter:drop-shadow(0 0 30px rgba(139,26,60,.55));animation:hlPulse 1.8s ease-in-out infinite;display:block;transition:all .5s;}
+@keyframes hlPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+.hl-lock{position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-size:1.8rem;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));transition:all .5s;animation:lockWobble 3s ease-in-out infinite;}
+@keyframes lockWobble{0%,100%{transform:translateX(-50%) rotate(0);}30%{transform:translateX(-50%) rotate(-5deg);}60%{transform:translateX(-50%) rotate(5deg);}}
+.hl-heart.unlocking{animation:hlUnlock .7s cubic-bezier(.16,1,.3,1) forwards !important;}
+@keyframes hlUnlock{0%{transform:scale(1) rotate(0);}40%{transform:scale(1.3) rotate(-8deg);}70%{transform:scale(1.15) rotate(5deg);}100%{transform:scale(1) rotate(0);filter:drop-shadow(0 0 50px rgba(200,150,62,.9));}}
+.hl-title{font-family:'Noto Naskh Arabic',serif;font-size:2rem;color:var(--rose);margin-bottom:.4rem;}
+.hl-sub{color:var(--text-light);font-size:.95rem;margin-bottom:2.5rem;line-height:1.9;}
+
+/* SLIDER — يسار (لـ RTL) */
+.hl-slider-wrap{width:min(320px,88vw);margin:0 auto 1.2rem;}
+.hl-track{position:relative;height:62px;background:rgba(212,184,150,.18);border-radius:31px;border:2px solid rgba(139,26,60,.18);overflow:hidden;user-select:none;touch-action:none;}
+.hl-track-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Cairo',sans-serif;font-size:.92rem;color:var(--text-light);pointer-events:none;gap:.5rem;letter-spacing:.03em;transition:opacity .3s;}
+.hl-thumb{position:absolute;top:4px;right:4px;width:54px;height:54px;background:linear-gradient(135deg,var(--rose),var(--brown));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;box-shadow:0 4px 20px rgba(139,26,60,.45);cursor:grab;touch-action:none;}
+.hl-thumb:active{cursor:grabbing;}
+.hl-fill{position:absolute;inset:0;background:linear-gradient(to left,rgba(139,26,60,.12),transparent);width:0%;pointer-events:none;transition:width .05s;}
+
+/* PASSWORD STEP */
+.hl-pw-step{display:none;margin-top:1rem;animation:fadeInUp .4s cubic-bezier(.16,1,.3,1);}
+.hl-pw-hint{font-family:'Noto Naskh Arabic',serif;color:var(--gold);font-size:.95rem;margin-bottom:1rem;}
+.hl-pw-input{width:min(300px,84vw);padding:1rem 1.2rem;border:2px solid var(--beige);border-radius:12px;font-family:'Noto Naskh Arabic',serif;font-size:1.15rem;background:var(--cream);color:var(--text);outline:none;text-align:center;transition:border-color .3s;display:block;margin:0 auto .9rem;}
+.hl-pw-input:focus{border-color:var(--rose);}
+[data-theme="dark"] .hl-pw-input{background:#120906;border-color:#3D2418;}
+.hl-pw-btn{padding:.9rem 2.5rem;background:linear-gradient(135deg,var(--rose),var(--brown));color:var(--cream);border:none;border-radius:50px;font-family:'Cairo',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(139,26,60,.35);transition:all .3s;}
+.hl-pw-btn:hover{transform:translateY(-2px);}
+.hl-error{color:#e74c3c;font-size:.85rem;margin-top:.7rem;display:none;}
+@keyframes shake{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-9px);}40%,80%{transform:translateX(9px);}}
+.shake-el{animation:shake .4s ease;}
+
+/* UNLOCKED CONTENT */
+.hl-unlocked{display:none;max-width:440px;width:90%;padding:2.5rem 2rem;background:rgba(255,253,247,.97);backdrop-filter:blur(20px);border-radius:24px;box-shadow:0 24px 70px rgba(139,26,60,.2);border:1px solid rgba(200,150,62,.3);animation:hlReveal .6s cubic-bezier(.16,1,.3,1);}
+[data-theme="dark"] .hl-unlocked{background:rgba(20,10,5,.97);}
+@keyframes hlReveal{from{opacity:0;transform:scale(.88) translateY(24px);}to{opacity:1;transform:none;}}
+.hl-unlocked.show{display:block;}
+.hl-unlocked-hearts{font-size:2.5rem;margin-bottom:1rem;animation:hlPulse 1.5s infinite;}
+.hl-unlocked-title{font-family:'Noto Naskh Arabic',serif;font-size:1.8rem;color:var(--rose);margin-bottom:1rem;}
+.hl-unlocked-msg{font-family:'Noto Naskh Arabic',serif;font-size:1.05rem;line-height:2.2;color:var(--text);margin-bottom:1.5rem;}
+.hl-relock{padding:.65rem 1.8rem;background:var(--beige);color:var(--brown);border:none;border-radius:50px;font-family:'Cairo',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;}
+.hl-relock:hover{background:var(--rose);color:#fff;}
+
+/* ══════════════════════════════════════
+   DAILY CARD
+══════════════════════════════════════ */
+.daily-card{max-width:500px;margin:0 auto 2rem;background:rgba(255,253,247,.95);backdrop-filter:blur(16px);border-radius:20px;padding:1.5rem 1.5rem 1.2rem;box-shadow:0 12px 40px rgba(107,58,42,.14),0 0 0 1px rgba(200,150,62,.18);position:relative;overflow:hidden;transition:transform .3s;}
+.daily-card:hover{transform:translateY(-2px);}
+[data-theme="dark"] .daily-card{background:rgba(20,10,5,.95);}
+.daily-card-strip{position:absolute;top:0;left:0;right:0;height:5px;border-radius:20px 20px 0 0;transition:background .5s;}
+.daily-card.mood-warm .daily-card-strip{background:linear-gradient(90deg,#f9ca24,#f0932b);}
+.daily-card.mood-deep .daily-card-strip{background:linear-gradient(90deg,#74b9ff,#0984e3);}
+.daily-card.mood-love .daily-card-strip{background:linear-gradient(90deg,#fd79a8,#e84393);}
+.daily-card.mood-calm .daily-card-strip{background:linear-gradient(90deg,#55efc4,#00b894);}
+.daily-card.mood-romance .daily-card-strip{background:linear-gradient(90deg,#fd79a8,#8B1A3C);}
+.daily-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.daily-card-label{font-family:'Noto Naskh Arabic',serif;font-size:1rem;color:var(--rose);font-weight:700;display:flex;align-items:center;gap:.4rem;}
+.daily-day-badge{background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;padding:.25rem .75rem;border-radius:16px;font-size:.82rem;font-weight:700;}
+.mood-row{display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap;}
+.mood-opt{padding:.35rem .85rem;border-radius:16px;border:2px solid transparent;font-size:.85rem;cursor:pointer;transition:all .2s;background:rgba(212,184,150,.12);color:var(--text-light);font-family:'Cairo',sans-serif;white-space:nowrap;}
+.mood-opt:hover{border-color:var(--rose);color:var(--rose);}
+.mood-opt.sel{background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;border-color:transparent;}
+.daily-event-box{width:100%;min-height:64px;padding:.8rem 1rem;border:2px solid rgba(212,184,150,.35);border-radius:12px;font-family:'Noto Naskh Arabic',serif;font-size:.95rem;background:rgba(245,236,215,.25);color:var(--text);outline:none;resize:none;transition:border-color .3s;line-height:1.8;direction:rtl;}
+[data-theme="dark"] .daily-event-box{background:rgba(18,9,6,.4);border-color:rgba(90,58,37,.35);}
+.daily-event-box:focus{border-color:var(--rose);}
+.daily-actions{display:flex;align-items:center;justify-content:space-between;margin-top:.8rem;}
+.daily-sync{font-size:.72rem;color:var(--text-light);}
+.daily-sync.ok{color:#27ae60;}
+.daily-sync.err{color:#e74c3c;}
+.daily-save-btn{padding:.5rem 1.4rem;background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;border:none;border-radius:16px;font-family:'Cairo',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .3s;}
+.daily-save-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(139,26,60,.3);}
+
+/* ══════════════════════════════════════
+   PROMISE RITUAL — طقس الوعد
+══════════════════════════════════════ */
+.promise-ritual-btn{
+  position:relative;
+  margin-top:2rem;
+  width:160px;height:160px;
+  border-radius:50%;
+  border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--rose),var(--brown));
+  box-shadow:0 0 0 0 rgba(139,26,60,.4);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:.3rem;font-family:'Cairo',sans-serif;color:#fff;
+  transition:transform .2s;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+.promise-ritual-btn .pr-emoji{font-size:3rem;pointer-events:none;}
+.promise-ritual-btn .pr-label{font-size:.8rem;font-weight:700;opacity:.9;pointer-events:none;}
+@keyframes prPulseRing{
+  0%{box-shadow:0 0 0 0 rgba(139,26,60,.6);}
+  70%{box-shadow:0 0 0 40px rgba(139,26,60,0);}
+  100%{box-shadow:0 0 0 0 rgba(139,26,60,0);}
+}
+.promise-ritual-btn.holding{
+  animation:prPulseRing 1s ease-out infinite;
+  transform:scale(1.05);
+}
+@keyframes prGlow{
+  0%,100%{box-shadow:0 0 40px 10px rgba(200,150,62,.5);}
+  50%{box-shadow:0 0 80px 30px rgba(200,150,62,.8);}
+}
+.promise-ritual-btn.activated{
+  background:linear-gradient(135deg,#C8963E,#E2B45A);
+  animation:prGlow 1.5s ease-in-out infinite;
+}
+/* حلقة التقدم SVG */
+.pr-progress-ring{
+  position:absolute;inset:-6px;
+  pointer-events:none;
+}
+/* طقس النور والصدى */
+@keyframes ritualFlash{
+  0%{opacity:0;}
+  10%{opacity:.7;}
+  30%{opacity:.2;}
+  50%{opacity:.6;}
+  100%{opacity:0;}
+}
+.ritual-flash-overlay{
+  position:fixed;inset:0;
+  background:radial-gradient(circle at center,rgba(255,215,0,.35),rgba(200,150,62,.15),transparent 70%);
+  pointer-events:none;z-index:9998;
+  display:none;
+}
+.ritual-flash-overlay.flash{
+  display:block;
+  animation:ritualFlash 1.2s ease-out forwards;
+}
+@keyframes ritualEcho{
+  0%{transform:translate(-50%,-50%) scale(.5);opacity:0;}
+  30%{opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(2.5);opacity:0;}
+}
+.ritual-echo-ring{
+  position:fixed;top:50%;left:50%;
+  width:200px;height:200px;
+  border:3px solid rgba(200,150,62,.6);
+  border-radius:50%;
+  pointer-events:none;z-index:9999;
+  display:none;
+}
+.ritual-echo-ring.echo{
+  display:block;
+  animation:ritualEcho 1s cubic-bezier(.16,1,.3,1) forwards;
+}
+.ritual-echo-ring.echo2{animation-delay:.2s;}
+.ritual-echo-ring.echo3{animation-delay:.4s;}
+/* رسالة الطقس */
+.ritual-sacred-msg{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  pointer-events:none;z-index:10000;
+  display:none;
+  font-family:'Noto Naskh Arabic',serif;
+}
+.ritual-sacred-msg.show{display:block;}
+@keyframes sacredMsgIn{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.7);}
+  30%{opacity:1;transform:translate(-50%,-50%) scale(1.05);}
+  80%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1);}
+}
+.ritual-sacred-msg.show{
+  animation:sacredMsgIn 2.5s cubic-bezier(.16,1,.3,1) forwards;
+}
+.rsm-inner{
+  background:rgba(26,10,5,.92);backdrop-filter:blur(20px);
+  border:2px solid rgba(200,150,62,.5);
+  border-radius:24px;padding:2.5rem 2.5rem;
+  box-shadow:0 0 60px rgba(200,150,62,.4);
+  max-width:min(90vw,400px);
+}
+.rsm-emoji{font-size:3.5rem;display:block;margin-bottom:.8rem;}
+.rsm-title{font-size:1.8rem;color:#E2B45A;margin-bottom:.5rem;}
+.rsm-text{font-size:1rem;color:rgba(245,236,215,.85);line-height:1.9;}
+/* حلقة progress حول الزر */
+.pr-ring-svg{
+  position:absolute;inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px);
+  pointer-events:none;
+}
+.pr-ring-circle{
+  fill:none;
+  stroke:rgba(245,236,215,.9);
+  stroke-width:4;
+  stroke-linecap:round;
+  transform-origin:center;
+  transform:rotate(-90deg);
+  stroke-dasharray:502;
+  stroke-dashoffset:502;
+  transition:stroke-dashoffset .05s linear;
+}
+
+/* ══════════════════════════════════════
+   MESSAGES — WhatsApp style input bar
+══════════════════════════════════════ */
+.wa-input-bar{
+  position:sticky;bottom:0;
+  background:rgba(255,253,247,.97);backdrop-filter:blur(16px);
+  border-top:1px solid rgba(212,184,150,.3);
+  padding:.6rem .8rem calc(.6rem + env(safe-area-inset-bottom,0px));
+  z-index:100;
+}
+[data-theme="dark"] .wa-input-bar{background:rgba(18,9,6,.97);border-top-color:rgba(90,58,37,.4);}
+.wa-suggestions{
+  display:flex;gap:.4rem;overflow-x:auto;padding:.2rem 0 .5rem;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.wa-suggestions::-webkit-scrollbar{display:none;}
+.wa-suggestion-chip{
+  white-space:nowrap;padding:.35rem .85rem;
+  border:1.5px solid rgba(139,26,60,.25);border-radius:20px;
+  font-family:'Cairo',sans-serif;font-size:.8rem;color:var(--rose);
+  background:rgba(139,26,60,.06);cursor:pointer;
+  transition:all .2s;flex-shrink:0;
+}
+.wa-suggestion-chip:hover,.wa-suggestion-chip:active{background:var(--rose);color:#fff;border-color:var(--rose);}
+.wa-row{
+  display:flex;gap:.5rem;align-items:flex-end;
+}
+.wa-textarea{
+  flex:1;
+  padding:.65rem 1rem;
+  border:1.5px solid rgba(212,184,150,.5);border-radius:22px;
+  font-family:'Cairo',sans-serif;font-size:.93rem;
+  background:var(--cream);color:var(--text);
+  outline:none;resize:none;max-height:120px;overflow-y:auto;
+  min-height:42px;line-height:1.5;
+  transition:border-color .25s;
+}
+.wa-textarea:focus{border-color:var(--rose);}
+[data-theme="dark"] .wa-textarea{background:#120906;border-color:#3D2418;}
+.wa-send-btn{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,var(--rose),var(--brown));
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;flex-shrink:0;
+  box-shadow:0 2px 12px rgba(139,26,60,.35);
+  transition:all .25s;
+}
+.wa-send-btn:hover{transform:scale(1.1);}
+.wa-send-btn:active{transform:scale(.95);}
+.hpb-btn{position:fixed;bottom:calc(1.2rem + env(safe-area-inset-bottom,0px));left:1rem;width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,rgba(139,26,60,.85),rgba(107,58,42,.85));backdrop-filter:blur(8px);border:1px solid rgba(200,150,62,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 4px 16px rgba(139,26,60,.3);z-index:4000;transition:all .3s;opacity:.75;}
+.hpb-btn:hover{opacity:1;transform:scale(1.1);}
+@media(max-width:768px){.hpb-btn{bottom:calc(5.5rem + env(safe-area-inset-bottom,0px));}}
+
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+  <div class="ld-heart">💕</div>
+  <div class="ld-title">بيت الذكريات</div>
+  <div class="ld-sub">خالد وفاطمة 🏡</div>
+  <div class="ld-bar-wrap"><div class="ld-bar" id="ldBar"></div></div>
+  <div class="ld-dots"><span></span><span></span><span></span></div>
+</div>
+
+<canvas id="particlesCanvas"></canvas>
+<div class="flying-text">خالد وفاطمة ديما مع بعض ♾️❤️</div>
+<div class="notif" id="notif">
+  <span id="notifIcon">🔔</span>
+  <span id="notifText"></span>
+</div>
+
+<!-- LOGIN -->
+<div class="login-container" id="loginContainer">
+  <div class="login-bg">
+    <img src="https://images.unsplash.com/photo-1518621736915-f3b1c41bfd00?w=1920&q=80" alt="" loading="eager">
+  </div>
+  <div class="login-box">
+    <div class="login-icon">💕</div>
+    <h1>بيت الذكريات</h1>
+    <p class="subtitle">أدخل كلمة السر للدخول للعالم الخاص 🏡</p>
+    <div class="input-group">
+      <label>🔑 كلمة السر</label>
+      <input type="password" id="secretCode" placeholder="اكتب كلمة السر هنا" onkeypress="if(event.key==='Enter')checkSecret()">
+    </div>
+    <div class="input-group">
+      <label>💕 أنت مين؟</label>
+      <select id="userNameSelect">
+        <option value="خالد">👨‍💻 خالد</option>
+        <option value="فاطمة">👩‍💕 فاطمة</option>
+      </select>
+    </div>
+    <button class="login-btn" onclick="checkSecret()">دخول 💕</button>
+    <div class="error-msg" id="errorMessage"></div>
+  </div>
+</div>
+
+<!-- MORE MENU OVERLAY -->
+<div id="moreMenuOverlay" style="display:none;position:fixed;inset:0;z-index:5000;" onclick="closeMoreMenu()"></div>
+
+<!-- APP SHELL -->
+<div class="app-shell" id="appShell" style="display:none;">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a class="sidebar-logo" onclick="showPage('home');closeSidebar()">بيت الذكريات <span>🏡</span></a>
+      <div class="sidebar-meta">
+        <span>💕 خالد وفاطمة</span>
+        <span class="sidebar-days-pill" id="sidebarDays">0 يوم</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">الرئيسية</div>
+      <div class="nav-grid">
+        <button class="nav-item active" id="nav-home" onclick="showPage('home');closeSidebar()"><span class="nav-emoji">🏠</span>الرئيسية</button>
+        <button class="nav-item" id="nav-messages" onclick="showPage('messages');closeSidebar()" style="position:relative;"><span class="nav-emoji">💌</span>رسائل<span class="nav-badge" id="messageBadge">0</span></button>
+        <button class="nav-item" id="nav-memory" onclick="showPage('memory');closeSidebar()"><span class="nav-emoji">🧱</span>ذكريات</button>
+      </div>
+      <div class="nav-section-title">قصتنا</div>
+      <div class="nav-grid">
+        <button class="nav-item" id="nav-story" onclick="showPage('story');closeSidebar()"><span class="nav-emoji">📖</span>قصتنا</button>
+        <button class="nav-item" id="nav-timeline" onclick="showPage('timeline');closeSidebar()"><span class="nav-emoji">🗓️</span>خط زمني</button>
+        <button class="nav-item" id="nav-dates" onclick="showPage('dates');closeSidebar()"><span class="nav-emoji">📅</span>التواريخ</button>
+        <button class="nav-item" id="nav-countdown" onclick="showPage('countdown');closeSidebar()"><span class="nav-emoji">⏳</span>المناسبات</button>
+      </div>
+      <div class="nav-section-title">مشاعرنا</div>
+      <div class="nav-grid">
+        <button class="nav-item" id="nav-feelings" onclick="showPage('feelings');closeSidebar()"><span class="nav-emoji">🤍</span>المشاعر</button>
+        <button class="nav-item" id="nav-promise" onclick="showPage('promise');closeSidebar()"><span class="nav-emoji">🤞</span>الوعد</button>
+        <button class="nav-item" id="nav-problems" onclick="showPage('problems');closeSidebar()"><span class="nav-emoji">💪</span>المشاكل</button>
+        <button class="nav-item" id="nav-photos" onclick="showPage('photos');closeSidebar()"><span class="nav-emoji">📸</span>الصور</button>
+      </div>
+      <div class="nav-section-title">الإبداع</div>
+      <div class="nav-grid">
+        <button class="nav-item" id="nav-playlist" onclick="showPage('playlist');closeSidebar()"><span class="nav-emoji">🎵</span>بلايليست</button>
+        <button class="nav-item" id="nav-canvas" onclick="showPage('canvas');closeSidebar()"><span class="nav-emoji">🎨</span>اللوحة</button>
+        <button class="nav-item" id="nav-canvas" onclick="showPage('canvas');closeSidebar()"><span class="nav-emoji">🎨</span>اللوحة</button>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-footer-btn btn-dark-toggle" onclick="toggleDarkMode()"><span id="darkIcon">☀️</span> الوضع</button>
+      <button class="sidebar-footer-btn btn-logout" onclick="logout()">🚪 خروج</button>
+    </div>
+  </aside>
+
+  <button class="sidebar-fab" id="sidebarFab" onclick="toggleSidebar()">
+    <span class="sidebar-fab-icon" id="sidebarFabIcon">☰</span>
+  </button>
+
+  <div class="top-bar" id="topBar">
+    <div class="top-bar-logo" onclick="showPage('home')">بيت الذكريات <span style="color:var(--gold)">🏡</span></div>
+    <div class="top-bar-right">
+      <button class="top-bar-btn" onclick="toggleDarkMode()" id="topDarkBtn">☀️</button>
+      <button class="top-bar-btn" onclick="logout()">🚪</button>
+    </div>
+  </div>
+
+  <main class="main-content" id="mainContent">
+
+    <!-- ════════════════ HOME ════════════════ -->
+    <div id="page-home" class="page">
+      <div class="page-bg" id="bg-home">
+        <img src="https://images.unsplash.com/photo-1518621736915-f3b1c41bfd00?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:linear-gradient(135deg,rgba(245,236,215,.72),rgba(212,184,150,.58));"></div>
+      </div>
+      <section class="hero">
+        <div class="hero-content">
+          <div class="hero-text sr">
+            <h1 class="hero-title"><span class="glitch" id="typingTitle" data-text="بيت الذكريات 🏡"></span></h1>
+            <p class="hero-subtitle" id="typingSubtitle"></p>
+            <p class="hero-p">قصة حب مش عادية، بدأت بصدفة وكملت باختيار.<br>كل يوم بنختار بعض، وكل مشكلة بنتجاوزها مع بعض.</p>
+            <button class="cta-button" onclick="showPage('story')">اقرأ القصة الكاملة 📖</button>
+          </div>
+          <div class="heartbeat-counter sr sr-delay-2" onclick="showDayMessage()">
+            <svg class="heart-svg" width="60" height="55" viewBox="0 0 60 55">
+              <path d="M30 50 C30 50 5 33 5 18 C5 10 11 4 18.5 4 C23 4 27 6.5 30 10 C33 6.5 37 4 41.5 4 C49 4 55 10 55 18 C55 33 30 50 30 50Z" fill="var(--rose)" opacity=".9"/>
+            </svg>
+            <div class="hb-days" id="daysCountDisplay">0</div>
+            <div class="hb-label">يوم من قصتنا الجميلة 💕</div>
+            <div class="hb-hint">👆 اضغط للرسالة</div>
+          </div>
+          <div class="home-nav-grid sr sr-delay-3">
+            <button class="home-nav-card" onclick="showPage('story')"><span class="hnc-emoji">📖</span><span class="hnc-label">قصتنا</span></button>
+            <button class="home-nav-card" onclick="showPage('messages')"><span class="hnc-emoji">💌</span><span class="hnc-label">رسائل</span></button>
+            <button class="home-nav-card" onclick="showPage('promise')"><span class="hnc-emoji">🤞</span><span class="hnc-label">وعدنا</span></button>
+            <button class="home-nav-card" onclick="showPage('memory')"><span class="hnc-emoji">🧱</span><span class="hnc-label">ذكريات</span></button>
+            <button class="home-nav-card" onclick="showPage('feelings')"><span class="hnc-emoji">🤍</span><span class="hnc-label">مشاعر</span></button>
+            <button class="home-nav-card" onclick="showPage('photos')"><span class="hnc-emoji">📸</span><span class="hnc-label">صور</span></button>
+            <button class="home-nav-card" onclick="showPage('countdown')"><span class="hnc-emoji">⏳</span><span class="hnc-label">مناسبات</span></button>
+            <button class="home-nav-card" onclick="showPage('playlist')"><span class="hnc-emoji">🎵</span><span class="hnc-label">موسيقى</span></button>
+          </div>
+        </div>
+      </section>
+      <!-- DAILY CARD -->
+      <section style="padding:0 4% 1rem;position:relative;z-index:1;">
+        <div class="daily-card mood-romance" id="dailyCard">
+          <div class="daily-card-strip"></div>
+          <div class="daily-card-header">
+            <div class="daily-card-label">🌅 بطاقة اليوم</div>
+            <div class="daily-day-badge" id="dailyDayBadge">اليوم ...</div>
+          </div>
+          <div class="mood-row">
+            <button class="mood-opt" data-mood="warm" onclick="setDailyMood('warm')">💛 هادي</button>
+            <button class="mood-opt" data-mood="deep" onclick="setDailyMood('deep')">💙 عميق</button>
+            <button class="mood-opt sel" data-mood="romance" onclick="setDailyMood('romance')">🩷 رومانسي</button>
+            <button class="mood-opt" data-mood="love" onclick="setDailyMood('love')">💗 حب</button>
+            <button class="mood-opt" data-mood="calm" onclick="setDailyMood('calm')">💚 مريح</button>
+          </div>
+          <textarea class="daily-event-box" id="dailyEventBox" placeholder="ما اللي حصل اليوم؟ حدث صغير، لحظة حلوة..." rows="2" oninput="dailyUnsaved()"></textarea>
+          <div class="daily-actions">
+            <span class="daily-sync" id="dailySyncLabel">✏️ غير محفوظ</span>
+            <button class="daily-save-btn" onclick="saveDailyCard()">حفظ 💾</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="summary-section">
+        <div class="summary-box sr sr-delay-1">
+          <h2 class="summary-title">ملخص قصتنا 💝</h2>
+          <div class="ornament">❧</div>
+          <p class="summary-text">اتعرفنا بالصدفة في جروب، وعدنا فترة من البلوك والرجوع. اعترفنا بمشاعرنا يوم ١/٢/٢٠٢٣، وعدنا فترة من الفراق والحب. رجعنا لبعض يوم ٩/٨/٢٠٢٥، ومن ساعتها واحنا بنختار بعض كل يوم.</p>
+          <div class="summary-highlight">
+            <p>💕 <strong>مهما حصل من مشاكل أو فراق، في الآخر اختيارنا الأول هو إحنا.</strong> 💕<br><br>🏡 بيت الذكريات ده بيتنا اللي بنحفظ فيه كل لحظة جميلة.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ════════════════ MEMORY WALL ════════════════ -->
+    <div id="page-memory" class="page">
+      <div class="page-bg" id="bg-memory">
+        <img data-src="https://images.unsplash.com/photo-1501139083538-0139583c060f?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.62);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <div class="wall-header">
+          <h2>جدار الذكريات 🧱💕</h2>
+          <p>كل لحظة عشناها مع بعض محفوظة هنا</p>
+        </div>
+        <div class="masonry-3">
+          <!-- TALL: أول لقاء -->
+          <div class="mem-card">
+            <div class="mem-visual tall emoji-visual grad-rose">
+              <span>💫</span>
+              <span class="mem-badge mbadge-rose">البداية</span>
+              <div class="mem-hover-reveal"><span>أول لقاء غير كل حاجة 💕</span></div>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">📅 ٢٠٢٢ · لحظة</div>
+              <div class="mem-title">أول مرة اتكلمنا</div>
+              <div class="mem-text">صدفة في جروب غيّرت كل حاجة.</div>
+            </div>
+          </div>
+          <!-- QUOTE: وعدنا -->
+          <div class="mem-card">
+            <div class="mem-visual quote-visual">
+              <div class="q-mark">"</div>
+              <div class="q-text">مهما حصل من مشاكل أو فراق، في الآخر اختيارنا الأول هو إحنا.</div>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">💬 اقتباس</div>
+              <div class="mem-title">وعدنا الأبدي</div>
+            </div>
+          </div>
+          <!-- STAT: يوم الاعتراف -->
+          <div class="mem-card">
+            <div class="mem-visual stat-visual grad-gold">
+              <span class="stat-num" style="color:var(--brown);">١/٢</span>
+              <span class="stat-lbl" style="color:var(--brown-dark);">يوم الاعتراف ٢٠٢٣ 💕</span>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">📅 تاريخ مميز</div>
+              <div class="mem-title">قلنا كلمة الحب</div>
+            </div>
+          </div>
+          <!-- STAT: أيام العشرة -->
+          <div class="mem-card">
+            <div class="mem-visual stat-visual" style="background:linear-gradient(135deg,var(--rose),var(--brown-dark));">
+              <span class="stat-num" style="color:#fff;" id="wallDays">...</span>
+              <span class="stat-lbl" style="color:rgba(255,255,255,.8);">يوم من قصتنا ♾️</span>
+              <span class="mem-badge mbadge-gold">مستمر</span>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">⏱️ عداد حي</div>
+              <div class="mem-title">أيام العشرة</div>
+              <div class="mem-text">كل يوم بنختار بعض من جديد.</div>
+            </div>
+          </div>
+          <!-- TALL QUOTE: الاختيار اليومي -->
+          <div class="mem-card">
+            <div class="mem-visual tall quote-visual" style="background:linear-gradient(135deg,#4A2518,#8B1A3C);">
+              <div class="q-mark">"</div>
+              <div class="q-text" style="font-size:.9rem;">حبنا مش مجرد كلمة، هو اختيار بنعمله كل يوم. وكل يوم بنثبت إننا استحقينا بعض.</div>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">💬 خالد</div>
+              <div class="mem-title">الاختيار اليومي</div>
+            </div>
+          </div>
+          <!-- STAT: صور -->
+          <div class="mem-card">
+            <div class="mem-visual stat-visual grad-blue">
+              <span class="stat-num" style="color:#2980b9;" id="wallPhotos">0</span>
+              <span class="stat-lbl" style="color:#2471a3;">صورة التقطناها معاً 📸</span>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">📸 ذكريات</div>
+              <div class="mem-title">صورنا المشتركة</div>
+            </div>
+          </div>
+          <!-- يوم الرجوع -->
+          <div class="mem-card">
+            <div class="mem-visual emoji-visual grad-green">
+              <span>🌱</span>
+              <span class="mem-badge mbadge-green">بداية جديدة</span>
+              <div class="mem-hover-reveal"><span>٩ أغسطس ٢٠٢٥ — رجعنا لبعض 💕</span></div>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">📅 ٩/٨/٢٠٢٥</div>
+              <div class="mem-title">يوم الرجوع</div>
+              <div class="mem-text">من ساعتها واحنا بنختار بعض كل يوم.</div>
+            </div>
+          </div>
+          <!-- STAT: مشاكل تجاوزناها -->
+          <div class="mem-card">
+            <div class="mem-visual stat-visual grad-green">
+              <span style="font-size:2.5rem;">💪</span>
+              <span class="stat-num" style="color:#27ae60;" id="wallProblems">0</span>
+              <span class="stat-lbl" style="color:#1e8449;">مشكلة تجاوزناها</span>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">💚 إنجاز</div>
+              <div class="mem-title">تجاوزنا المشاكل</div>
+              <div class="mem-text">كل مشكلة زادتكم قوة وفهم.</div>
+            </div>
+          </div>
+          <!-- STAT: وعود -->
+          <div class="mem-card">
+            <div class="mem-visual stat-visual" style="background:linear-gradient(135deg,#fbd5e0,#f9a8c9);">
+              <span style="font-size:2.2rem;">🤞</span>
+              <span class="stat-num" style="color:var(--rose);" id="wallPromise">0</span>
+              <span class="stat-lbl" style="color:var(--rose-light);">مرة قلنا «إحنا» ❤️</span>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">🤞 وعدنا</div>
+              <div class="mem-title">اخترنا بعض</div>
+            </div>
+          </div>
+          <!-- QUOTE short -->
+          <div class="mem-card">
+            <div class="mem-visual short quote-visual" style="background:linear-gradient(135deg,#7b4fa6,#9b59b6);">
+              <div class="q-mark" style="font-size:2.5rem;">"</div>
+              <div class="q-text" style="font-size:.88rem;">معاكِ أحس إني في مكان آمن.</div>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">💜 أمان</div>
+            </div>
+          </div>
+          <!-- الثقة -->
+          <div class="mem-card">
+            <div class="mem-visual short quote-visual" style="background:linear-gradient(135deg,#C8963E,#E2B45A);">
+              <div class="q-mark" style="font-size:2.5rem;">"</div>
+              <div class="q-text" style="font-size:.88rem;">ثقتي فيكِ أكبر من أي شك.</div>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">💛 ثقة</div>
+            </div>
+          </div>
+          <!-- الاختيار الليومي -->
+          <div class="mem-card">
+            <div class="mem-visual emoji-visual grad-purple">
+              <span style="font-size:3.5rem;">🌙</span>
+              <div class="mem-hover-reveal"><span>كل ليلة تنتهي بإننا اخترنا بعض</span></div>
+            </div>
+            <div class="mem-body">
+              <div class="mem-meta">🌙 كل يوم</div>
+              <div class="mem-title">كل ليلة نختار</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ COUNTDOWN ════════════════ -->
+    <div id="page-countdown" class="page">
+      <div class="page-bg" id="bg-countdown">
+        <img data-src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.70);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">مناسباتنا القادمة ⏳</h2>
+        <div class="ornament">❧</div>
+        <div id="countdownGrid"></div>
+        <div class="m-card" style="margin-top:1.5rem;padding:1.5rem;">
+          <div style="font-size:1.3rem;color:var(--rose);font-family:'Noto Naskh Arabic',serif;margin-bottom:1rem;">➕ أضف مناسبة جديدة</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem;">
+            <div>
+              <label style="font-size:.8rem;color:var(--text-light);display:block;margin-bottom:.3rem;">🏷️ الاسم</label>
+              <input id="newOccName" type="text" placeholder="مثلاً: عيد ميلادك..." style="width:100%;padding:.7rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;background:var(--cream);color:var(--text);outline:none;">
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:var(--text-light);display:block;margin-bottom:.3rem;">🎭 إيموجي</label>
+              <input id="newOccEmoji" type="text" placeholder="💕" style="width:100%;padding:.7rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;background:var(--cream);color:var(--text);outline:none;">
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:var(--text-light);display:block;margin-bottom:.3rem;">📅 اليوم</label>
+              <input id="newOccDay" type="number" min="1" max="31" placeholder="يوم" style="width:100%;padding:.7rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;background:var(--cream);color:var(--text);outline:none;">
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:var(--text-light);display:block;margin-bottom:.3rem;">🗓️ الشهر</label>
+              <select id="newOccMonth" style="width:100%;padding:.7rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;background:var(--cream);color:var(--text);outline:none;">
+                <option value="1">يناير</option><option value="2">فبراير</option><option value="3">مارس</option>
+                <option value="4">أبريل</option><option value="5">مايو</option><option value="6">يونيو</option>
+                <option value="7">يوليو</option><option value="8">أغسطس</option><option value="9">سبتمبر</option>
+                <option value="10">أكتوبر</option><option value="11">نوفمبر</option><option value="12">ديسمبر</option>
+              </select>
+            </div>
+          </div>
+          <button onclick="addNewOccasion()" style="padding:.8rem 2rem;background:linear-gradient(135deg,var(--rose),var(--brown));color:var(--cream);border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;">💾 أضف المناسبة</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ TIMELINE ════════════════ -->
+    <div id="page-timeline" class="page">
+      <div class="page-bg" id="bg-timeline">
+        <img data-src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.68);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">خط زمني لقصتنا 🗓️</h2>
+        <div class="ornament">❧</div>
+        <!-- العناصر الزمنية -->
+        <div id="timelineContainer"></div>
+        <!-- إضافة حدث جديد -->
+        <div class="tl-add-box">
+          <div class="tl-add-title">➕ أضف حدثاً جديداً</div>
+          <div class="tl-edit-row" style="margin-bottom:.5rem;">
+            <input class="tl-edit-input" id="tlNewEmoji" type="text" placeholder="إيموجي 💕" style="max-width:110px;">
+            <input class="tl-edit-input" id="tlNewDate" type="text" placeholder="التاريخ — مثلاً: 2025">
+          </div>
+          <input class="tl-edit-input" id="tlNewTitle" type="text" placeholder="عنوان الحدث..." style="margin-bottom:.5rem;">
+          <textarea class="tl-edit-input tl-edit-textarea" id="tlNewText" placeholder="تفاصيل الحدث..."></textarea>
+          <div style="display:flex;align-items:center;gap:.7rem;margin-top:.7rem;flex-wrap:wrap;">
+            <button class="tl-ctrl-btn tl-ctrl-save" onclick="tlAddNew()" style="padding:.55rem 1.2rem;font-size:.85rem;">💾 أضف الحدث</button>
+            <span class="tl-sync" id="tlAddSync"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ STORY ════════════════ -->
+    <div id="page-story" class="page">
+      <div class="page-bg" id="bg-story">
+        <img data-src="https://images.unsplash.com/photo-1474552226712-ac0f0961a954?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.68);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">قصتنا 📖</h2>
+        <div class="ornament">❧</div>
+        <div style="display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-bottom:2rem;">
+          <button class="cta-button" onclick="openReadingMode()" style="font-size:.9rem;padding:.7rem 1.5rem;">📖 وضع القراءة</button>
+        </div>
+        <div class="masonry" id="storyChapters"></div>
+        <div class="story-add-box">
+          <h3 style="color:var(--rose);margin-bottom:1rem;font-family:'Noto Naskh Arabic',serif;">✍️ أضف جزءاً جديداً</h3>
+          <input class="story-input" id="storyChapterTitle" type="text" placeholder="عنوان الجزء...">
+          <textarea class="story-input story-textarea" id="storyChapterText" placeholder="اكتب هنا..."></textarea>
+          <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;">
+            <button class="cta-button" onclick="saveStoryChapter()" style="font-size:.9rem;padding:.7rem 1.5rem;">💾 حفظ</button>
+            <span id="storySyncStatus" style="font-size:.8rem;color:var(--text-light);">⚪ لم يتم الحفظ بعد</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ PLAYLIST ════════════════ -->
+    <div id="page-playlist" class="page">
+      <div class="page-bg" id="bg-playlist">
+        <img data-src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.72);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">بلايليستنا المشتركة 🎵</h2>
+        <div class="ornament">❧</div>
+        <div class="mp-card" id="musicPlayerCard">
+          <div class="mp-album-wrap" id="mpAlbumWrap">
+            <div class="mp-album-img" id="mpAlbumImg">🎵</div>
+            <div class="mp-vinyl-center">💕</div>
+          </div>
+          <div class="mp-song-info">
+            <div class="mp-title" id="mpTitle">اختر أغنية 🎵</div>
+            <div class="mp-artist" id="mpArtist">—</div>
+          </div>
+          <div class="mp-progress-wrap">
+            <div class="mp-progress-bar-bg" id="mpProgressBg" onclick="mpSeek(event)">
+              <div class="mp-progress-fill" id="mpProgressFill"></div>
+            </div>
+            <div class="mp-times"><span id="mpCurrent">0:00</span><span id="mpDuration">0:00</span></div>
+          </div>
+          <div class="mp-controls">
+            <button class="mp-ctrl" id="mpShuffleBtn" onclick="mpToggleShuffle()">🔀</button>
+            <button class="mp-ctrl" onclick="mpPrev()">⏮️</button>
+            <button class="mp-ctrl mp-ctrl-play" id="mpPlayBtn" onclick="mpTogglePlay()">▶️</button>
+            <button class="mp-ctrl" onclick="mpNext()">⏭️</button>
+            <button class="mp-ctrl" id="mpRepeatBtn" onclick="mpToggleRepeat()">🔁</button>
+          </div>
+          <div class="mp-vol-row">
+            <span>🔊</span>
+            <input type="range" class="mp-vol-slider" id="mpVolSlider" min="0" max="100" value="80" oninput="mpSetVolume(this.value)">
+          </div>
+        </div>
+        <div class="playlist-add-box" style="margin-top:1.5rem;">
+          <h3 style="color:var(--rose);margin-bottom:1rem;font-family:'Noto Naskh Arabic',serif;">➕ أضف أغنية جديدة</h3>
+          <div class="playlist-input-row">
+            <input class="playlist-input" id="songTitle" type="text" placeholder="اسم الأغنية (اختياري)"/>
+            <input class="playlist-input" id="songUrl" type="url" placeholder="رابط يوتيوب أو MP3..."/>
+            <button class="add-song-btn" onclick="addSong()">▶ أضف</button>
+          </div>
+        </div>
+        <div id="songsList" style="margin-top:1rem;"><div class="no-songs">🎵 لا توجد أغاني بعد...</div></div>
+      </div>
+    </div>
+
+    <!-- ════════════════ CANVAS ════════════════ -->
+    <div id="page-canvas" class="page">
+      <div class="page-bg" id="bg-canvas">
+        <img data-src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.72);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">لوحتنا المشتركة 🎨</h2>
+        <div class="ornament">❧</div>
+        <div class="canvas-wrapper">
+          <div style="display:grid;grid-template-columns:52px 1fr 190px;gap:1rem;align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:.5rem;">
+              <button class="canvas-tool-btn active" id="tool-pen" onclick="setTool('pen')" style="padding:.6rem;font-size:1.1rem;">✏️</button>
+              <button class="canvas-tool-btn" id="tool-brush" onclick="setTool('brush')" style="padding:.6rem;font-size:1.1rem;">🖌️</button>
+              <button class="canvas-tool-btn" id="tool-eraser" onclick="setTool('eraser')" style="padding:.6rem;font-size:1.1rem;">⬜</button>
+              <button class="canvas-tool-btn" id="tool-fill" onclick="setTool('fill')" style="padding:.6rem;font-size:1.1rem;">🪣</button>
+              <button class="canvas-tool-btn" id="tool-text" onclick="setTool('text')" style="padding:.6rem;font-size:.85rem;">T</button>
+              <hr style="border-color:var(--beige);margin:.2rem 0;">
+              <button class="canvas-action-btn" onclick="undoCanvas()" style="padding:.5rem;font-size:.9rem;">↩️</button>
+              <button class="canvas-action-btn" onclick="clearCanvas()" style="padding:.5rem;font-size:.9rem;">🗑️</button>
+              <button class="canvas-action-btn" onclick="saveCanvas()" style="padding:.5rem;font-size:.9rem;">📥</button>
+            </div>
+            <div>
+              <canvas id="loveCanvas" width="760" height="420"></canvas>
+              <div style="display:flex;gap:.5rem;margin-top:.7rem;align-items:center;">
+                <label style="font-size:.78rem;color:var(--text-light);white-space:nowrap;">الحجم:</label>
+                <input type="range" id="brushSize" min="1" max="40" value="6" style="flex:1;accent-color:var(--rose);" oninput="document.getElementById('brushSizeVal').textContent=this.value">
+                <span id="brushSizeVal" style="font-size:.78rem;color:var(--rose);min-width:20px;">6</span>
+              </div>
+              <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap;align-items:center;">
+                <label style="font-size:.78rem;color:var(--text-light);">التعتيم:</label>
+                <input type="range" id="brushOpacity" min="10" max="100" value="100" style="width:80px;accent-color:var(--rose);">
+                <button class="canvas-action-btn" onclick="saveCanvasToDB()" style="margin-right:auto;background:var(--rose);color:#fff;padding:.45rem .9rem;font-size:.82rem;">💾 حفظ</button>
+                <button class="canvas-action-btn" onclick="loadCanvasFromDB()" style="padding:.45rem .7rem;font-size:.82rem;">🔄</button>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:.7rem;">
+              <div>
+                <div style="font-size:.7rem;color:var(--gold);font-weight:700;margin-bottom:.3rem;">عجلة الألوان</div>
+                <input type="color" id="colorWheel" value="#8B1A3C" style="width:100%;height:38px;border:none;border-radius:6px;cursor:pointer;padding:2px;" oninput="setColorFromWheel(this.value)">
+              </div>
+              <div>
+                <div style="font-size:.7rem;color:var(--gold);font-weight:700;margin-bottom:.3rem;">ألوان سريعة</div>
+                <div id="quickColors" style="display:flex;flex-wrap:wrap;gap:.3rem;">
+                  <div class="color-swatch active" style="background:#8B1A3C;" onclick="setColor('#8B1A3C',this)"></div>
+                  <div class="color-swatch" style="background:#C8963E;" onclick="setColor('#C8963E',this)"></div>
+                  <div class="color-swatch" style="background:#F5ECD7;" onclick="setColor('#F5ECD7',this)"></div>
+                  <div class="color-swatch" style="background:#6B3A2A;" onclick="setColor('#6B3A2A',this)"></div>
+                  <div class="color-swatch" style="background:#000000;" onclick="setColor('#000000',this)"></div>
+                  <div class="color-swatch" style="background:#ffffff;border:1px solid #ccc;" onclick="setColor('#ffffff',this)"></div>
+                  <div class="color-swatch" style="background:#2980b9;" onclick="setColor('#2980b9',this)"></div>
+                  <div class="color-swatch" style="background:#27ae60;" onclick="setColor('#27ae60',this)"></div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:.7rem;color:var(--gold);font-weight:700;margin-bottom:.3rem;">ألوان محفوظة</div>
+                <div id="savedColorsGrid" style="display:flex;flex-wrap:wrap;gap:.3rem;min-height:30px;"></div>
+                <button class="canvas-action-btn" onclick="saveCurrentColor()" style="margin-top:.4rem;padding:.3rem .6rem;font-size:.75rem;width:100%;">+ حفظ اللون</button>
+              </div>
+              <div>
+                <div style="font-size:.7rem;color:var(--gold);font-weight:700;margin-bottom:.3rem;">لوحات جاهزة</div>
+                <div style="display:flex;flex-direction:column;gap:.3rem;">
+                  <button class="canvas-action-btn" onclick="applyPalette('romantic')" style="font-size:.75rem;padding:.35rem;">💕 رومانسي</button>
+                  <button class="canvas-action-btn" onclick="applyPalette('ocean')" style="font-size:.75rem;padding:.35rem;">🌊 المحيط</button>
+                  <button class="canvas-action-btn" onclick="applyPalette('sunset')" style="font-size:.75rem;padding:.35rem;">🌅 الغروب</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ FEELINGS ════════════════ -->
+    <div id="page-feelings" class="page">
+      <div class="page-bg" id="bg-feelings">
+        <img data-src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.68);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">مشاعرنا 🤍</h2>
+        <div class="ornament">❧</div>
+        <div class="masonry">
+          <div class="feeling-card">
+            <div class="m-visual short" style="background:linear-gradient(135deg,rgba(39,174,96,.15),rgba(39,174,96,.3));"><span style="font-size:2.5rem;">🤗</span></div>
+            <div class="m-body">
+              <div class="m-meta">💚 شعور</div>
+              <div class="m-title">الأمان</div>
+              <p class="m-text" style="margin-bottom:.6rem;">معاكِ أحس إني في مكان آمن، زي ماكون في بيتي اللي مهما بعته أرجعله تاني.</p>
+              <textarea class="feeling-input" placeholder="✍️ اكتبي هنا شعورك..."></textarea>
+            </div>
+          </div>
+          <div class="feeling-card">
+            <div class="m-visual short" style="background:linear-gradient(135deg,rgba(41,128,185,.15),rgba(41,128,185,.3));"><span style="font-size:2.5rem;">🤝</span></div>
+            <div class="m-body">
+              <div class="m-meta">💙 شعور</div>
+              <div class="m-title">الثقة</div>
+              <p class="m-text" style="margin-bottom:.6rem;">ثقتي فيكِ أكبر من أي شك، وأعرف إن مهما حصل هنفضل جنب بعض.</p>
+              <textarea class="feeling-input" placeholder="✍️ اكتبي هنا عن ثقتك..."></textarea>
+            </div>
+          </div>
+          <div class="feeling-card">
+            <div class="m-visual tall" style="background:linear-gradient(135deg,rgba(139,26,60,.15),rgba(139,26,60,.3));"><span style="font-size:2.5rem;">❤️</span><span class="m-badge badge-rose" style="top:.7rem;right:.7rem;">الأهم 💕</span></div>
+            <div class="m-body">
+              <div class="m-meta">❤️ شعور</div>
+              <div class="m-title">الحب</div>
+              <p class="m-text" style="margin-bottom:.6rem;">حبنا مش مجرد كلمة، هو اختيار بنعمله كل يوم.</p>
+              <textarea class="feeling-input" placeholder="✍️ اكتبي هنا عن حبك..."></textarea>
+            </div>
+          </div>
+          <div class="feeling-card">
+            <div class="m-visual short" style="background:linear-gradient(135deg,rgba(200,150,62,.15),rgba(200,150,62,.3));"><span style="font-size:2.5rem;">😊</span></div>
+            <div class="m-body">
+              <div class="m-meta">💛 شعور</div>
+              <div class="m-title">السعادة</div>
+              <p class="m-text" style="margin-bottom:.6rem;">لما بكون معاكِ حاسس إن الدنيا تمام، مفيش حاجة ناقصة.</p>
+              <textarea class="feeling-input" placeholder="✍️ اكتبي هنا..."></textarea>
+            </div>
+          </div>
+          <div class="feeling-card">
+            <div class="m-visual short" style="background:linear-gradient(135deg,rgba(142,68,173,.15),rgba(142,68,173,.3));"><span style="font-size:2.5rem;">🌙</span></div>
+            <div class="m-body">
+              <div class="m-meta">💜 شعور</div>
+              <div class="m-title">الاشتياق</div>
+              <p class="m-text" style="margin-bottom:.6rem;">حتى لما بكون بعيد، قلبي فاكرك وبيفضل يدور عليكِ.</p>
+              <textarea class="feeling-input" placeholder="✍️ اكتبي هنا..."></textarea>
+            </div>
+          </div>
+          <div class="feeling-card">
+            <div class="m-visual short" style="background:linear-gradient(135deg,rgba(231,76,60,.15),rgba(231,76,60,.3));"><span style="font-size:2.5rem;">💪</span></div>
+            <div class="m-body">
+              <div class="m-meta">🔴 شعور</div>
+              <div class="m-title">القوة</div>
+              <p class="m-text" style="margin-bottom:.6rem;">معاكِ بحس إني أقدر أواجه أي حاجة، علشان مش بلاقيها لوحدي.</p>
+              <textarea class="feeling-input" placeholder="✍️ اكتبي هنا..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ PROBLEMS ════════════════ -->
+    <div id="page-problems" class="page">
+      <div class="page-bg" id="bg-problems">
+        <img data-src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.70);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">المشاكل 💪</h2>
+        <div class="ornament">❧</div>
+        <div class="counter-box">
+          <span class="counter-number" id="problemsCount">0</span>
+          <div style="color:var(--text-light);margin-top:.5rem;">مشكلة عدت بينا وكملنا 💕</div>
+          <div class="counter-controls">
+            <button class="counter-btn btn-minus" onclick="updateProblems(-1)">−</button>
+            <button class="counter-btn btn-plus" onclick="updateProblems(1)">+</button>
+          </div>
+          <div class="sync-status" id="problemsSync">⚪ جاري التزامن...</div>
+        </div>
+        <div class="masonry" style="margin-top:1rem;">
+          <div class="m-card"><div class="m-visual short" style="background:linear-gradient(135deg,rgba(200,150,62,.15),rgba(200,150,62,.3));"><span style="font-size:2.2rem;">💕</span></div><div class="m-body"><div class="m-meta">✨ تذكر</div><div class="m-title">مع كل مشكلة</div><div class="m-text">نفتكر الحب اللي بينا والمجهود اللي اتبذل عشان نكمل مع بعض.</div></div></div>
+          <div class="m-card"><div class="m-visual short" style="background:linear-gradient(135deg,rgba(39,174,96,.12),rgba(39,174,96,.25));"><span style="font-size:2.2rem;">🌊</span></div><div class="m-body"><div class="m-meta">💬 حكمة</div><div class="m-title">مش بنعد المشاكل</div><div class="m-text">احنا بنعد اللحظات اللي قررنا فيها نكمل مع بعض رغم كل حاجة.</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ PROMISE ════════════════ -->
+    <div id="page-promise" class="page">
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title" style="color:rgba(245,236,215,.9);">وعدنا 🤞</h2>
+        <div class="ornament" style="color:rgba(245,236,215,.5);">❧</div>
+        <div class="promise-box">
+          <p style="font-size:1.1rem;color:rgba(245,236,215,.9);line-height:1.9;margin-bottom:1rem;">مهما أي حد فينا غلط، احنا مكملين.<br>علشان دايماً اختيارنا هيكون <strong>إحنا</strong> 💕</p>
+          <div class="promise-counter" id="promiseCount">0</div>
+          <p style="color:rgba(245,236,215,.7);margin-bottom:.5rem;">مرة اخترنا فيها إحنا</p>
+          <div class="sync-status" id="promiseSync" style="color:rgba(245,236,215,.5);">⚪ جاري التزامن...</div>
+
+          <!-- طقس الوعد -->
+          <div style="margin-top:2rem;display:flex;flex-direction:column;align-items:center;gap:.8rem;">
+            <p style="font-size:.85rem;color:rgba(245,236,215,.6);font-family:'Noto Naskh Arabic',serif;">اضغط وامسك ٣ ثواني لتفعيل طقس الوعد المقدس 🤞</p>
+            <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;">
+              <button class="promise-ritual-btn" id="promiseRitualBtn"
+                onmousedown="startPromiseRitual()" ontouchstart="startPromiseRitual(event)"
+                onmouseup="cancelPromiseRitual()" ontouchend="cancelPromiseRitual()"
+                onmouseleave="cancelPromiseRitual()">
+                <svg class="pr-ring-svg" viewBox="0 0 188 188">
+                  <circle class="pr-ring-circle" id="prRingCircle" cx="94" cy="94" r="80"/>
+                </svg>
+                <span class="pr-emoji">🤞</span>
+                <span class="pr-label">اضغط وامسك</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- طبقات الطقس -->
+      <div class="ritual-flash-overlay" id="ritualFlash"></div>
+      <div class="ritual-echo-ring" id="ritualEcho1"></div>
+      <div class="ritual-echo-ring" id="ritualEcho2"></div>
+      <div class="ritual-echo-ring" id="ritualEcho3"></div>
+      <div class="ritual-sacred-msg" id="ritualSacredMsg">
+        <div class="rsm-inner">
+          <span class="rsm-emoji">🤞✨🤞</span>
+          <div class="rsm-title">الوعد المقدس</div>
+          <div class="rsm-text">مهما حصل من مشاكل أو فراق،<br>في الآخر اختيارنا الأول هو إحنا.<br><br>💕 <em>أنا أختار إحنا</em> 💕</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ PHOTOS ════════════════ -->
+    <div id="page-photos" class="page">
+      <div class="page-bg" id="bg-photos">
+        <img data-src="https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.70);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">صورنا 📸</h2>
+        <div class="ornament">❧</div>
+        <div class="photos-box">
+          <div class="photos-number" id="photosCount">0</div>
+          <div class="photos-label">صورة مع بعض 💕</div>
+          <div class="sync-status" id="photosSync">⚪ جاري التزامن...</div>
+          <p style="color:var(--text-light);margin-top:.8rem;font-size:.9rem;">العد مستمر إلى ما لا نهاية... ♾️</p>
+        </div>
+        <div class="celebration" id="celebration">
+          <h3>🎉 مبروك! أول 100 صورة! 📸💕</h3>
+          <p>كل صورة كانت ذكرى جميلة!</p>
+        </div>
+        <div style="text-align:center;margin-top:1rem;">
+          <button class="cta-button" onclick="addPhoto()">📷 أضف صورة جديدة</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ DATES ════════════════ -->
+    <div id="page-dates" class="page">
+      <div class="page-bg" id="bg-dates">
+        <img data-src="https://images.unsplash.com/photo-1490750967868-88df5691166a?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.68);"></div>
+      </div>
+      <div class="container">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">تواريخنا المميزة 📅</h2>
+        <div class="ornament">❧</div>
+        <div class="masonry" id="fixedDatesContainer"></div>
+        <div class="m-card" style="margin-top:1.5rem;padding:1.5rem;">
+          <div style="color:var(--gold);font-family:'Noto Naskh Arabic',serif;font-size:1.2rem;margin-bottom:1rem;">➕ أضف تاريخاً جديداً</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem;">
+            <div>
+              <label style="font-size:.8rem;color:var(--text-light);display:block;margin-bottom:.3rem;">📅 التاريخ</label>
+              <input id="newDateVal" type="date" style="width:100%;padding:.7rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;background:var(--cream);color:var(--text);outline:none;">
+            </div>
+            <div>
+              <label style="font-size:.8rem;color:var(--text-light);display:block;margin-bottom:.3rem;">🏷️ الاسم</label>
+              <input id="newDateName" type="text" placeholder="مثلاً: يوم خاص..." style="width:100%;padding:.7rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;background:var(--cream);color:var(--text);outline:none;">
+            </div>
+          </div>
+          <input id="newDateEmoji" type="text" placeholder="إيموجي (اختياري) 💕" style="width:100%;padding:.7rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;background:var(--cream);color:var(--text);outline:none;margin-bottom:.8rem;">
+          <textarea id="newDateNote" placeholder="✍️ اكتب ذكرياتك عن هذا اليوم..." style="width:100%;padding:.8rem;border:2px solid var(--beige);border-radius:8px;font-family:'Cairo',sans-serif;font-size:.9rem;resize:vertical;min-height:80px;background:var(--cream);color:var(--text);outline:none;margin-bottom:.8rem;"></textarea>
+          <button onclick="addNewDate()" style="padding:.8rem 2rem;background:linear-gradient(135deg,var(--rose),var(--brown));color:var(--cream);border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;">💾 أضف التاريخ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ MESSAGES ════════════════ -->
+    <div id="page-messages" class="page" style="display:flex;flex-direction:column;min-height:100vh;">
+      <div class="page-bg" id="bg-messages">
+        <img data-src="https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=1920&q=80" alt="" loading="lazy">
+        <div class="page-bg-overlay" style="background:rgba(245,236,215,.70);"></div>
+      </div>
+      <!-- Header -->
+      <div class="container" style="flex-shrink:0;">
+        <button class="back-btn" onclick="showPage('home')">← رجوع</button>
+        <h2 class="section-title">رسائلنا 💌</h2>
+        <div class="ornament">❧</div>
+        <div class="connection-status" id="connectionStatus">❌ لا يوجد اتصال</div>
+        <!-- Search -->
+        <div class="message-box" style="margin-bottom:.8rem;">
+          <div class="msg-search-wrap" style="margin-bottom:0;">
+            <span class="msg-search-icon">🔍</span>
+            <input class="msg-search-input" id="msgSearchInput" type="text" placeholder="ابحث في الرسائل..." oninput="filterMessages(this.value)">
+          </div>
+          <div class="msg-search-count" id="msgSearchCount"></div>
+        </div>
+      </div>
+      <!-- Messages list — grows to fill space -->
+      <div class="container" style="flex:1;display:flex;flex-direction:column;">
+        <div class="message-box" style="flex:1;margin-bottom:0;padding:.8rem;">
+          <div class="messages-list" id="messagesList">
+            <div class="no-messages">💭 لا توجد رسائل بعد...</div>
+          </div>
+        </div>
+      </div>
+      <!-- WhatsApp-style input bar — sticks to bottom -->
+      <div class="wa-input-bar" id="waInputBar">
+        <!-- اقتراحات الرسائل -->
+        <div class="wa-suggestions" id="waSuggestions">
+          <button class="wa-suggestion-chip" onclick="insertSuggestion('بحبك 💕')">بحبك 💕</button>
+          <button class="wa-suggestion-chip" onclick="insertSuggestion('وحشتني 🥺')">وحشتني 🥺</button>
+          <button class="wa-suggestion-chip" onclick="insertSuggestion('أنا تمام ♥')">أنا تمام ♥</button>
+          <button class="wa-suggestion-chip" onclick="insertSuggestion('صباح الحب ☀️')">صباح الحب ☀️</button>
+          <button class="wa-suggestion-chip" onclick="insertSuggestion('مساء النور 🌙')">مساء النور 🌙</button>
+          <button class="wa-suggestion-chip" onclick="insertSuggestion('بفتكر فيك 🌸')">بفتكر فيك 🌸</button>
+          <button class="wa-suggestion-chip" onclick="insertSuggestion('اشتقتلك كتير 💌')">اشتقتلك كتير 💌</button>
+          <button class="wa-suggestion-chip" onclick="insertSuggestion('أنا اخترت إحنا 🤞')">أنا اخترت إحنا 🤞</button>
+        </div>
+        <div class="wa-row">
+          <textarea class="wa-textarea" id="messageInput" placeholder="اكتب رسالتك... 💕" rows="1"
+            oninput="autoResizeWaTextarea(this)"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+          <button class="wa-send-btn" id="sendBtn" onclick="sendMessage()">📤</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ════════════════ PROMISE RITUAL ════════════════ -->
+    <div id="page-promise-ritual" class="page" style="display:none;"></div>
+
+  </main>
+
+  <!-- BOTTOM BAR -->
+  <nav class="bottom-bar" id="bottomBar">
+    <div class="bottom-bar-scroll" style="justify-content:space-around;">
+      <button class="bottom-item active" id="bnav-home" onclick="showPage('home')"><span class="bottom-emoji">🏠</span>الرئيسية</button>
+      <button class="bottom-item" id="bnav-messages" onclick="showPage('messages')" style="position:relative;"><span class="bottom-emoji">💌</span>رسائل<span class="bottom-badge" id="bottomMsgBadge">0</span></button>
+      <button class="bottom-item" id="bnav-story" onclick="showPage('story')"><span class="bottom-emoji">📖</span>قصتنا</button>
+      <button class="bottom-item" id="bnav-promise" onclick="showPage('promise')"><span class="bottom-emoji">🤞</span>وعدنا</button>
+      <button class="bottom-item" id="bnav-more" onclick="toggleMoreMenu()"><span class="bottom-emoji">☰</span>المزيد</button>
+    </div>
+    <div id="moreMenu">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;">
+        <button class="bottom-item" onclick="showPage('memory');closeMoreMenu()"><span class="bottom-emoji">🧱</span>ذكريات</button>
+        <button class="bottom-item" onclick="showPage('feelings');closeMoreMenu()"><span class="bottom-emoji">🤍</span>مشاعر</button>
+        <button class="bottom-item" onclick="showPage('problems');closeMoreMenu()"><span class="bottom-emoji">💪</span>مشاكل</button>
+        <button class="bottom-item" onclick="showPage('photos');closeMoreMenu()"><span class="bottom-emoji">📸</span>صور</button>
+        <button class="bottom-item" onclick="showPage('dates');closeMoreMenu()"><span class="bottom-emoji">📅</span>تواريخ</button>
+        <button class="bottom-item" onclick="showPage('countdown');closeMoreMenu()"><span class="bottom-emoji">⏳</span>مناسبات</button>
+        <button class="bottom-item" onclick="showPage('timeline');closeMoreMenu()"><span class="bottom-emoji">🗓️</span>زمني</button>
+        <button class="bottom-item" onclick="showPage('playlist');closeMoreMenu()"><span class="bottom-emoji">🎵</span>موسيقى</button>
+        <button class="bottom-item" onclick="showPage('canvas');closeMoreMenu()"><span class="bottom-emoji">🎨</span>لوحة</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- READING MODE -->
+  <div class="reading-overlay" id="readingOverlay">
+    <button class="reading-close-btn" onclick="closeReadingMode()">✕</button>
+    <div class="reading-content" id="readingContent"></div>
+    <div class="reading-actions">
+      <button class="reading-action-btn reading-action-pdf" onclick="exportStoryPDF()">📄 PDF</button>
+      <button class="reading-action-btn reading-action-close" onclick="closeReadingMode()">✕ إغلاق</button>
+    </div>
+  </div>
+
+  <button class="hpb-btn" id="hpbBtn" title="جمّع الجزيئات 💕" onclick="triggerHeartFormation()">💕</button>
+</div><!-- /app-shell -->
+
+<script>
+// ══════════════════════════════════════════════
+// CLEANUP
+// ══════════════════════════════════════════════
+const _cleanup = {
+  _intervals:[],
+  addInterval(id){this._intervals.push(id);return id;},
+  clearAll(){this._intervals.forEach(clearInterval);this._intervals=[];}
+};
+window.addEventListener('beforeunload',()=>_cleanup.clearAll());
+
+// ══════════════════════════════════════════════
+// LOADING SCREEN
+// ══════════════════════════════════════════════
+(function(){
+  const bar=document.getElementById('ldBar');
+  const screen=document.getElementById('loadingScreen');
+  if(!screen)return;
+  let prog=0;
+  const iv=setInterval(()=>{
+    prog+=Math.random()*16+5;
+    if(prog>=100){prog=100;clearInterval(iv);}
+    if(bar)bar.style.width=prog+'%';
+    if(prog>=100){
+      setTimeout(()=>{
+        screen.style.opacity='0';screen.style.visibility='hidden';
+        setTimeout(()=>screen.remove(),700);
+      },350);
+    }
+  },80);
+})();
+
+// ══════════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════════
+const firebaseConfig={
+  apiKey:"AIzaSyAklV4_qndb_vTeSXNm0AbgqrdxkYwt7ok",
+  authDomain:"love-for-ever-a3077.firebaseapp.com",
+  databaseURL:"https://love-for-ever-a3077-default-rtdb.firebaseio.com",
+  projectId:"love-for-ever-a3077",
+  storageBucket:"love-for-ever-a3077.firebasestorage.app",
+  messagingSenderId:"265907206498",
+  appId:"1:265907206498:web:27b2f107a3a6c3a9c3943b"
+};
+let database,countersRef,messagesRef,playlistRef,canvasRef,storyRef,datesRef;
+let isConnected=false;
+try{
+  firebase.initializeApp(firebaseConfig);
+  database=firebase.database();
+  countersRef=database.ref('counters');
+  messagesRef=database.ref('messages');
+  playlistRef=database.ref('playlist');
+  canvasRef=database.ref('canvas');
+  storyRef=database.ref('story');
+  datesRef=database.ref('dates');
+  isConnected=true;
+}catch(e){console.error('Firebase:',e);}
+
+// ══════════════════════════════════════════════
+// DARK MODE — apply saved
+// ══════════════════════════════════════════════
+(function(){
+  const t=localStorage.getItem('theme');
+  if(t==='dark'){
+    document.documentElement.setAttribute('data-theme','dark');
+    document.addEventListener('DOMContentLoaded',()=>{
+      const di=document.getElementById('darkIcon'),tdi=document.getElementById('topDarkBtn');
+      if(di)di.textContent='🌙';if(tdi)tdi.textContent='🌙';
+    });
+  }
+})();
+function toggleDarkMode(){
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',isDark?'':'dark');
+  localStorage.setItem('theme',isDark?'light':'dark');
+  const icon=isDark?'☀️':'🌙';
+  const di=document.getElementById('darkIcon'),tdi=document.getElementById('topDarkBtn');
+  if(di)di.textContent=icon;if(tdi)tdi.textContent=icon;
+  initParticles();
+}
+
+// ══════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════
+const SECRET_PASSWORD='khaled22#$';
+function checkSecret(){
+  const input=document.getElementById('secretCode').value.trim();
+  const errDiv=document.getElementById('errorMessage');
+  if(input===SECRET_PASSWORD){
+    const name=document.getElementById('userNameSelect').value;
+    localStorage.setItem('loveSession',JSON.stringify({name,loginTime:Date.now(),expiresAt:Date.now()+86400000*30}));
+    errDiv.style.display='none';
+    showMainContent();
+    try{firebase.auth().signInAnonymously().catch(()=>{});}catch(e){}
+  }else{
+    errDiv.textContent='❌ كلمة السر غير صحيحة';
+    errDiv.style.display='block';
+  }
+}
+function checkLocalSession(){
+  const s=localStorage.getItem('loveSession');
+  if(s){try{const d=JSON.parse(s);if(d.expiresAt>Date.now())showMainContent();else localStorage.removeItem('loveSession');}catch(e){localStorage.removeItem('loveSession');}}
+}
+function showMainContent(){
+  document.getElementById('loginContainer').classList.add('hidden');
+  document.getElementById('appShell').style.display='flex';
+  showPage('home');
+  if(isConnected){loadProblems();loadPromise();loadPhotos();loadPlaylist();loadStory();loadDates();loadExtraOccasions();loadTimeline();}
+}
+checkLocalSession();
+
+// ══════════════════════════════════════════════
+// LOGOUT — with confirmation
+// ══════════════════════════════════════════════
+function logout(){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);z-index:200000;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease;';
+  overlay.innerHTML=`<div style="background:var(--white);border-radius:16px;padding:2.5rem 2rem;max-width:320px;width:90%;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.3);animation:slideUp .3s cubic-bezier(.16,1,.3,1);">
+    <div style="font-size:3rem;margin-bottom:1rem;">🚪</div>
+    <h3 style="font-family:'Noto Naskh Arabic',serif;color:var(--rose);font-size:1.5rem;margin-bottom:.6rem;">خروج؟</h3>
+    <p style="color:var(--text-light);margin-bottom:1.8rem;line-height:1.8;">هتخرج من بيتنا؟ 💔<br>محتاج كلمة السر مرة تانية عشان ترجع.</p>
+    <div style="display:flex;gap:.8rem;">
+      <button onclick="this.closest('div').parentElement.remove()" style="flex:1;padding:.85rem;background:var(--beige);color:var(--brown);border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">لا، أكمل 💕</button>
+      <button onclick="confirmLogout()" style="flex:1;padding:.85rem;background:linear-gradient(135deg,var(--rose),var(--brown));color:#fff;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">خروج 🚪</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+function confirmLogout(){
+  localStorage.removeItem('loveSession');
+  try{firebase.auth().signOut().finally(()=>location.reload());}catch(e){location.reload();}
+}
+
+// ══════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════
+let sidebarOpen=false;
+function toggleSidebar(){sidebarOpen=!sidebarOpen;sidebarOpen?openSidebar():closeSidebar();}
+function openSidebar(){
+  sidebarOpen=true;
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarFab').classList.add('open-state');
+  document.getElementById('sidebarFabIcon').textContent='✕';
+  document.getElementById('sidebarOverlay').classList.add('show');
+}
+function closeSidebar(){
+  sidebarOpen=false;
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarFab').classList.remove('open-state');
+  document.getElementById('sidebarFabIcon').textContent='☰';
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════
+// MORE MENU
+// ══════════════════════════════════════════════
+function toggleMoreMenu(){
+  const menu=document.getElementById('moreMenu');
+  const ov=document.getElementById('moreMenuOverlay');
+  const isOpen=menu.style.display==='block';
+  menu.style.display=isOpen?'none':'block';
+  ov.style.display=isOpen?'none':'block';
+}
+function closeMoreMenu(){
+  document.getElementById('moreMenu').style.display='none';
+  document.getElementById('moreMenuOverlay').style.display='none';
+}
+
+// ══════════════════════════════════════════════
+// PAGE NAVIGATION
+// ══════════════════════════════════════════════
+const ALL_PAGES=['home','memory','countdown','timeline','story','playlist','canvas','feelings','problems','promise','photos','dates','messages'];
+
+function showPage(pageId){
+  if(!localStorage.getItem('loveSession'))return;
+  const cur=document.querySelector('.page.active');
+  if(cur&&cur.id==='page-canvas'&&pageId!=='canvas')destroyCanvas();
+  // إيقاف تحديث الرسائل لما نخرج من الصفحة
+  if(cur&&cur.id==='page-messages'&&pageId!=='messages')unloadMessages();
+  // hide all pages
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  // hide all backgrounds
+  document.querySelectorAll('.page-bg').forEach(b=>b.style.display='none');
+  // show target
+  const target=document.getElementById('page-'+pageId);
+  if(target)target.classList.add('active');
+  // show + lazy-load background
+  const bg=document.getElementById('bg-'+pageId);
+  if(bg){
+    bg.style.display='block';
+    const img=bg.querySelector('img');
+    if(img&&img.dataset.src){img.src=img.dataset.src;delete img.dataset.src;}
+    // dark mode overlay adjustment
+    const ov=bg.querySelector('.page-bg-overlay');
+    if(ov){
+      const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+      if(isDark)ov.style.background='rgba(20,10,5,.82)';
+      else ov.style.background='';
+    }
+  }
+  // nav active
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  const an=document.getElementById('nav-'+pageId);if(an)an.classList.add('active');
+  document.querySelectorAll('.bottom-item').forEach(b=>b.classList.remove('active'));
+  const ab=document.getElementById('bnav-'+pageId);if(ab)ab.classList.add('active');
+  // page-specific init
+  if(pageId==='home'){updateDaysCounter();setTimeout(startTypingEffect,400);}
+  if(pageId==='countdown')buildCountdowns();
+  if(pageId==='timeline'){if(!timelineData.length)loadTimeline();else buildTimeline();}
+  if(pageId==='canvas')setTimeout(initCanvas,200);
+  // تحميل الرسائل فقط عند فتح صفحتها
+  if(pageId==='messages'&&isConnected)loadMessages();
+  if(pageId==='memory')updateWallStats();
+  window.scrollTo({top:0,behavior:'smooth'});
+  // re-observe scroll reveal
+  setTimeout(observeSR,150);
+}
+
+// ══════════════════════════════════════════════
+// NOTIFICATION
+// ══════════════════════════════════════════════
+let notifTimer=null;
+function showNotif(type,text){
+  const el=document.getElementById('notif');
+  const icons={photos:'📸',promise:'🤞',days:'💕',default:'🔔'};
+  document.getElementById('notifIcon').textContent=icons[type]||icons.default;
+  document.getElementById('notifText').textContent=text;
+  el.className='notif '+(type||'');
+  el.classList.add('show');
+  if(notifTimer)clearTimeout(notifTimer);
+  notifTimer=setTimeout(()=>el.classList.remove('show'),3500);
+}
+// alias for backward compat
+function showCounterNotification(t,txt){showNotif(t,txt);}
+
+// ══════════════════════════════════════════════
+// HAPTIC
+// ══════════════════════════════════════════════
+function haptic(p){if(navigator.vibrate)navigator.vibrate(p||[25]);}
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('button,.cta-button,.nav-item,.bottom-item,.home-nav-card');
+  if(btn)haptic([25]);
+},{passive:true});
+
+// ══════════════════════════════════════════════
+// TYPING EFFECT
+// ══════════════════════════════════════════════
+function typeText(elId,text,speed){
+  speed=speed||80;
+  const el=document.getElementById(elId);if(!el)return;
+  el.textContent='';el.setAttribute('data-text',text);
+  let i=0;
+  const t=setInterval(()=>{
+    el.textContent+=text[i];el.setAttribute('data-text',el.textContent);i++;
+    if(i>=text.length)clearInterval(t);
+  },speed);
+}
+function startTypingEffect(){
+  typeText('typingTitle','بيت الذكريات 🏡',80);
+  setTimeout(()=>typeText('typingSubtitle','مهما حصل، احنا مكملين 💕',80),1200);
+}
+
+// ══════════════════════════════════════════════
+// DAYS COUNTER
+// ══════════════════════════════════════════════
+const START_DATE=new Date('2023-02-01T00:00:00');
+function calculateDays(){return Math.floor((new Date()-START_DATE)/86400000);}
+function updateDaysCounter(){
+  const days=calculateDays();
+  const el=document.getElementById('daysCountDisplay');if(el)el.textContent=days.toLocaleString('ar');
+  const sp=document.getElementById('sidebarDays');if(sp)sp.textContent=days.toLocaleString('ar')+' يوم';
+}
+function showDayMessage(){showNotif('days',calculateDays().toLocaleString('ar')+' يوم من الحب والاختيار 🌟');haptic([100,50,100]);}
+updateDaysCounter();
+_cleanup.addInterval(setInterval(updateDaysCounter,60000));
+
+// ══════════════════════════════════════════════
+// MEMORY WALL STATS
+// ══════════════════════════════════════════════
+function updateWallStats(){
+  const d=document.getElementById('wallDays');if(d)d.textContent=calculateDays().toLocaleString('ar-EG');
+  const p=document.getElementById('wallPhotos');if(p)p.textContent=(photosVal||0).toLocaleString('ar-EG');
+  const pr=document.getElementById('wallProblems');if(pr)pr.textContent=(problemsVal||0).toLocaleString('ar-EG');
+  const po=document.getElementById('wallPromise');if(po)po.textContent=(promiseVal||0).toLocaleString('ar-EG');
+}
+
+// ══════════════════════════════════════════════
+// OCCASIONS / COUNTDOWN
+// ══════════════════════════════════════════════
+const BASE_OCCASIONS=[
+  {emoji:'💕',name:'ذكرى رجوعنا لبعض',month:8,day:9},
+  {emoji:'🎂',name:'عيد ميلاد فاطمة',month:8,day:20},
+  {emoji:'🌸',name:'ذكرى الاعتراف الأول',month:2,day:1}
+];
+let extraOccasions=[];
+function getAllOccasions(){return[...BASE_OCCASIONS,...extraOccasions];}
+function loadExtraOccasions(){
+  if(!isConnected)return;
+  database.ref('occasions').on('value',snap=>{
+    const data=snap.val();
+    extraOccasions=data?Object.entries(data).map(([k,v])=>({id:k,...v})):[];
+    if(document.getElementById('page-countdown').classList.contains('active'))buildCountdowns();
+  });
+}
+function getNextOccasionDate(month,day){
+  const now=new Date(),year=now.getFullYear();
+  let d=new Date(year,month-1,day);
+  if(d<=now)d=new Date(year+1,month-1,day);
+  return d;
+}
+function buildCountdowns(){
+  const grid=document.getElementById('countdownGrid');if(!grid)return;
+  grid.innerHTML='';
+  getAllOccasions().forEach((occ,idx)=>{
+    const target=getNextOccasionDate(occ.month,occ.day);
+    const diff=target-new Date();
+    const days=Math.floor(diff/86400000),hours=Math.floor((diff%86400000)/3600000);
+    const minutes=Math.floor((diff%3600000)/60000),seconds=Math.floor((diff%60000)/1000);
+    const isToday=days===0&&hours===0;
+    const row=document.createElement('div');
+    row.className='cd-row';
+    const delBtn=occ.id?`<button onclick="deleteOccasion('${occ.id}')" style="background:none;border:none;color:var(--beige-dark);cursor:pointer;font-size:.85rem;position:absolute;top:.7rem;left:.7rem;" onmouseover="this.style.color='var(--rose)'" onmouseout="this.style.color='var(--beige-dark)'">🗑️</button>`:'';
+    row.style.position='relative';
+    row.innerHTML=`${delBtn}
+      <div class="cd-emoji">${occ.emoji}</div>
+      <div class="cd-info">
+        ${isToday?'<span class="m-badge badge-rose" style="position:relative;top:auto;right:auto;display:inline-block;margin-bottom:.3rem;">🎉 اليوم!</span><br>':''}
+        <div class="occ-name">${occ.name}</div>
+        <div class="occ-date">📅 ${occ.day}/${occ.month} كل سنة</div>
+      </div>
+      <div class="cd-boxes">
+        <div class="cd-box"><span class="cd-num" id="cd-d-${idx}">${String(days).padStart(2,'0')}</span><div class="cd-lbl">يوم</div></div>
+        <div class="cd-box"><span class="cd-num" id="cd-h-${idx}">${String(hours).padStart(2,'0')}</span><div class="cd-lbl">ساعة</div></div>
+        <div class="cd-box"><span class="cd-num" id="cd-m-${idx}">${String(minutes).padStart(2,'0')}</span><div class="cd-lbl">دقيقة</div></div>
+        <div class="cd-box"><span class="cd-num" id="cd-s-${idx}">${String(seconds).padStart(2,'0')}</span><div class="cd-lbl">ثانية</div></div>
+      </div>`;
+    grid.appendChild(row);
+  });
+  if(window._cdTick)clearInterval(window._cdTick);
+  window._cdTick=_cleanup.addInterval(setInterval(()=>{
+    getAllOccasions().forEach((occ,idx)=>{
+      const diff=getNextOccasionDate(occ.month,occ.day)-new Date();
+      if(diff<=0)return;
+      const d=document.getElementById('cd-d-'+idx),h=document.getElementById('cd-h-'+idx);
+      const m=document.getElementById('cd-m-'+idx),s=document.getElementById('cd-s-'+idx);
+      if(!s)return;
+      if(d)d.textContent=String(Math.floor(diff/86400000)).padStart(2,'0');
+      if(h)h.textContent=String(Math.floor((diff%86400000)/3600000)).padStart(2,'0');
+      if(m)m.textContent=String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+      if(s)s.textContent=String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+    });
+  },1000));
+}
+function addNewOccasion(){
+  const name=document.getElementById('newOccName').value.trim();
+  const emoji=document.getElementById('newOccEmoji').value.trim()||'🎉';
+  const day=parseInt(document.getElementById('newOccDay').value);
+  const month=parseInt(document.getElementById('newOccMonth').value);
+  if(!name||!day||day<1||day>31){showNotif('default','اكمل البيانات أولاً 📅');return;}
+  const occ={name,emoji,day,month};
+  if(!isConnected){extraOccasions.push(occ);buildCountdowns();return;}
+  database.ref('occasions').push(occ).then(()=>{
+    document.getElementById('newOccName').value='';
+    document.getElementById('newOccEmoji').value='';
+    document.getElementById('newOccDay').value='';
+    showNotif('default','تمت إضافة المناسبة 🎉');
+  });
+}
+function deleteOccasion(id){
+  if(!confirm('تأكيد حذف المناسبة؟'))return;
+  if(!isConnected){extraOccasions=extraOccasions.filter(o=>o.id!==id);buildCountdowns();return;}
+  database.ref('occasions/'+id).remove();
+}
+
+// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// TIMELINE — قابل للتعديل والإضافة والحذف
+// ══════════════════════════════════════════════
+const DEFAULT_TIMELINE = [
+  {date:'2022',          emoji:'🎭',title:'البداية الغريبة',   text:'اتعرفنا في جروب بالصدفة، بداية غريبة مليانة صدف.',         isDefault:true},
+  {date:'يناير 2023',   emoji:'🎵',title:'طريق الرجوع',       text:'فيديوهات أغاني، بلوك ورجوع... الأغاني كانت لغتنا.',         isDefault:true},
+  {date:'1 فبراير 2023',emoji:'💫',title:'يوم الاعتراف',      text:'اعترفنا بمشاعرنا وبدأت قصة الحب رسمياً.',                  isDefault:true},
+  {date:'مارس 2023',    emoji:'💔',title:'الفراق الأول',      text:'فترة صعبة خلتنا نعرف قيمة بعض.',                           isDefault:true},
+  {date:'2023-2025',    emoji:'🌅',title:'فترة الشوق',        text:'استعباط وتلميح وكل واحد بيحاول يتأكد من حب التاني.',        isDefault:true},
+  {date:'9 أغسطس 2025', emoji:'✨',title:'العودة للبعض',     text:'رجعنا لبعض وقررنا نكمل مع بعض للأبد. 💕',                  isDefault:true},
+  {date:'الآن',          emoji:'🤞',title:'وعد الاصابع',      text:'كل يوم بنختار بعض. هو ده الوعد. 💕',                       isDefault:true}
+];
+
+let timelineData = [];
+let tlRef = null;
+
+function loadTimeline() {
+  if (!isConnected) {
+    timelineData = DEFAULT_TIMELINE.map((d,i) => ({...d, _id:'def_'+i}));
+    buildTimeline(); return;
+  }
+  tlRef = database.ref('timeline');
+  tlRef.on('value', snap => {
+    const saved = snap.val();
+    const extra = saved ? Object.entries(saved).map(([k,v]) => ({...v, _id:k})) : [];
+    timelineData = [
+      ...DEFAULT_TIMELINE.map((d,i) => ({...d, _id:'def_'+i})),
+      ...extra.sort((a,b) => (a.savedAt||0)-(b.savedAt||0))
+    ];
+    buildTimeline();
+  });
+}
+
+function buildTimeline() {
+  const container = document.getElementById('timelineContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  timelineData.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'tl-row';
+    row.id = 'tl-row-' + idx;
+    const badge = item.isDefault
+      ? '<span class="tl-badge tl-badge-default">أصلي</span>'
+      : '<span class="tl-badge">جديد ✨</span>';
+    const canEdit  = !item.isDefault || true; // الكل قابل للتعديل
+    const canDelete = !item.isDefault;
+    row.innerHTML = `
+      <div class="tl-icon" id="tl-icon-${idx}">${item.emoji}</div>
+      <div class="tl-info" style="flex:1;">
+        <div class="tl-date" id="tl-date-${idx}">${badge}${item.date}</div>
+        <div class="tl-title" id="tl-title-${idx}">${item.title}</div>
+        <div class="tl-text" id="tl-text-${idx}">${item.text}</div>
+        <div class="tl-controls">
+          <button class="tl-ctrl-btn tl-ctrl-edit" onclick="tlStartEdit(${idx})">✏️ تعديل</button>
+          ${canDelete ? `<button class="tl-ctrl-btn tl-ctrl-del" onclick="tlDelete('${item._id}',${idx})">🗑️ حذف</button>` : ''}
+        </div>
+      </div>`;
+    container.appendChild(row);
+  });
+}
+
+function tlStartEdit(idx) {
+  const item = timelineData[idx];
+  const row  = document.getElementById('tl-row-' + idx);
+  if (!row) return;
+  row.classList.add('editing');
+  // حفظ المحتوى الأصلي
+  const infoEl = row.querySelector('.tl-info');
+  infoEl.innerHTML = `
+    <div class="tl-edit-wrap">
+      <div class="tl-edit-row">
+        <input class="tl-edit-input" id="tledit-emoji-${idx}" value="${item.emoji}" placeholder="إيموجي" style="max-width:100px;">
+        <input class="tl-edit-input" id="tledit-date-${idx}"  value="${item.date}"  placeholder="التاريخ">
+      </div>
+      <input class="tl-edit-input" id="tledit-title-${idx}" value="${item.title}" placeholder="العنوان">
+      <textarea class="tl-edit-input tl-edit-textarea" id="tledit-text-${idx}" placeholder="التفاصيل">${item.text}</textarea>
+      <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap;align-items:center;">
+        <button class="tl-ctrl-btn tl-ctrl-save" onclick="tlSaveEdit(${idx})">💾 حفظ</button>
+        <button class="tl-ctrl-btn tl-ctrl-cancel" onclick="buildTimeline()">✕ إلغاء</button>
+        <span class="tl-sync" id="tl-edit-sync-${idx}"></span>
+      </div>
+    </div>`;
+}
+
+function tlSaveEdit(idx) {
+  const item  = timelineData[idx];
+  const emoji = document.getElementById('tledit-emoji-'+idx)?.value.trim() || item.emoji;
+  const date  = document.getElementById('tledit-date-'+idx)?.value.trim()  || item.date;
+  const title = document.getElementById('tledit-title-'+idx)?.value.trim() || item.title;
+  const text  = document.getElementById('tledit-text-'+idx)?.value.trim()  || item.text;
+  const sync  = document.getElementById('tl-edit-sync-'+idx);
+  if (!title || !text) { showNotif('default','اكمل البيانات أولاً'); return; }
+  if (sync) sync.textContent = '⏳ جاري الحفظ...';
+
+  if (item.isDefault) {
+    // عناصر default — نحفظها كـ override في firebase
+    const override = { emoji, date, title, text, isOverride:true, origIdx:idx, savedAt:Date.now() };
+    if (!isConnected) {
+      timelineData[idx] = {...item, emoji, date, title, text};
+      buildTimeline();
+      showNotif('default','✅ تم التعديل محلياً');
+      return;
+    }
+    database.ref('timeline/override_'+idx).set(override)
+      .then(() => {
+        if (sync) { sync.textContent = '✅ محفوظ'; sync.className = 'tl-sync ok'; }
+        showNotif('default', '✅ تم حفظ التعديل');
+      })
+      .catch(() => { if (sync) { sync.textContent = '❌ فشل'; sync.className = 'tl-sync err'; } });
+  } else {
+    // عناصر مضافة — نحدّث قيمتها في firebase
+    const update = { emoji, date, title, text, savedAt: item.savedAt || Date.now() };
+    if (!isConnected) {
+      timelineData[idx] = {...item, emoji, date, title, text};
+      buildTimeline();
+      showNotif('default','✅ تم التعديل محلياً');
+      return;
+    }
+    database.ref('timeline/' + item._id).update(update)
+      .then(() => {
+        if (sync) { sync.textContent = '✅ محفوظ'; sync.className = 'tl-sync ok'; }
+        showNotif('default', '✅ تم حفظ التعديل');
+      })
+      .catch(() => { if (sync) { sync.textContent = '❌ فشل'; sync.className = 'tl-sync err'; } });
+  }
+}
+
+function tlDelete(id, idx) {
+  if (!confirm('تأكيد حذف هذا الحدث؟')) return;
+  if (!isConnected) {
+    timelineData.splice(idx, 1);
+    buildTimeline(); return;
+  }
+  database.ref('timeline/' + id).remove()
+    .then(() => showNotif('default', '🗑️ تم الحذف'))
+    .catch(() => showNotif('default', '❌ فشل الحذف'));
+}
+
+function tlAddNew() {
+  const emoji = document.getElementById('tlNewEmoji')?.value.trim() || '💕';
+  const date  = document.getElementById('tlNewDate')?.value.trim();
+  const title = document.getElementById('tlNewTitle')?.value.trim();
+  const text  = document.getElementById('tlNewText')?.value.trim();
+  const sync  = document.getElementById('tlAddSync');
+  if (!date || !title || !text) { showNotif('default','اكمل التاريخ والعنوان والتفاصيل 📅'); return; }
+  const entry = { emoji, date, title, text, savedAt: Date.now() };
+  if (sync) sync.textContent = '⏳ جاري الحفظ...';
+  if (!isConnected) {
+    timelineData.push({...entry, _id:'local_'+Date.now(), isDefault:false});
+    buildTimeline();
+    ['tlNewEmoji','tlNewDate','tlNewTitle','tlNewText'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+    if (sync) { sync.textContent='✅ تم الإضافة محلياً'; sync.className='tl-sync ok'; }
+    return;
+  }
+  database.ref('timeline').push(entry)
+    .then(() => {
+      ['tlNewEmoji','tlNewDate','tlNewTitle','tlNewText'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+      if (sync) { sync.textContent='✅ تم الإضافة'; sync.className='tl-sync ok'; }
+      showNotif('default','تمت الإضافة للخط الزمني 🗓️');
+      setTimeout(() => { if(sync) { sync.textContent=''; sync.className='tl-sync'; } }, 3000);
+    })
+    .catch(() => { if(sync) { sync.textContent='❌ فشل الحفظ'; sync.className='tl-sync err'; } });
+}
+
+
+// ══════════════════════════════════════════════
+// PROBLEMS
+// ══════════════════════════════════════════════
+let problemsVal=0;
+function loadProblems(){
+  if(!isConnected)return;
+  countersRef.child('problems').on('value',snap=>{
+    problemsVal=snap.val()||0;
+    const el=document.getElementById('problemsCount');if(el)el.textContent=problemsVal;
+    const sync=document.getElementById('problemsSync');if(sync){sync.textContent='✅ متزامن';sync.className='sync-status online';}
+  });
+}
+function updateProblems(delta){
+  const newVal=Math.max(0,problemsVal+delta);
+  if(!isConnected){problemsVal=newVal;document.getElementById('problemsCount').textContent=problemsVal;return;}
+  countersRef.child('problems').set(newVal).then(()=>showNotif('default',delta>0?'تمت الإضافة 💪':'تم التعديل'));
+}
+
+// ══════════════════════════════════════════════
+// PROMISE
+// ══════════════════════════════════════════════
+let promiseVal=0;
+function loadPromise(){
+  if(!isConnected)return;
+  countersRef.child('promise').on('value',snap=>{
+    promiseVal=snap.val()||0;
+    const el=document.getElementById('promiseCount');if(el)el.textContent=promiseVal;
+    const sync=document.getElementById('promiseSync');if(sync){sync.textContent='✅ متزامن';sync.className='sync-status online';}
+  });
+}
+function makePromise(){
+  const newVal=promiseVal+1;
+  if(!isConnected){promiseVal=newVal;document.getElementById('promiseCount').textContent=promiseVal;return;}
+  countersRef.child('promise').set(newVal).then(()=>{
+    showNotif('promise','اخترنا إحنا مرة تانية ❤️');haptic([200,100,200]);
+  });
+}
+
+// ══════════════════════════════════════════════
+// PROMISE RITUAL — طقس الوعد
+// ══════════════════════════════════════════════
+let _prTimer=null, _prStart=0, _prRaf=null;
+const PR_DURATION=3000; // 3 ثواني
+
+function startPromiseRitual(e){
+  if(e&&e.preventDefault)e.preventDefault();
+  const btn=document.getElementById('promiseRitualBtn');
+  const circle=document.getElementById('prRingCircle');
+  if(!btn)return;
+  btn.classList.add('holding');
+  _prStart=Date.now();
+  haptic([30]);
+  // animate ring
+  function animateRing(){
+    const elapsed=Date.now()-_prStart;
+    const pct=Math.min(elapsed/PR_DURATION,1);
+    const circumference=502;
+    if(circle)circle.style.strokeDashoffset=circumference*(1-pct);
+    if(pct>=1){
+      firePromiseRitual();
+    } else {
+      _prRaf=requestAnimationFrame(animateRing);
+    }
+  }
+  _prRaf=requestAnimationFrame(animateRing);
+}
+
+function cancelPromiseRitual(){
+  if(_prRaf)cancelAnimationFrame(_prRaf);
+  const btn=document.getElementById('promiseRitualBtn');
+  const circle=document.getElementById('prRingCircle');
+  if(btn)btn.classList.remove('holding','activated');
+  if(circle)circle.style.strokeDashoffset=502;
+}
+
+function firePromiseRitual(){
+  cancelAnimationFrame(_prRaf);
+  const btn=document.getElementById('promiseRitualBtn');
+  const circle=document.getElementById('prRingCircle');
+  if(btn){btn.classList.remove('holding');btn.classList.add('activated');}
+  if(circle)circle.style.strokeDashoffset=0;
+
+  // نور — flash overlay
+  const flash=document.getElementById('ritualFlash');
+  if(flash){flash.className='ritual-flash-overlay flash';setTimeout(()=>flash.className='ritual-flash-overlay',1400);}
+
+  // صدى — echo rings (3 waves)
+  ['ritualEcho1','ritualEcho2','ritualEcho3'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    setTimeout(()=>{
+      el.className='ritual-echo-ring echo';
+      setTimeout(()=>el.className='ritual-echo-ring',1100);
+    },i*200);
+  });
+
+  // رسالة مقدسة
+  setTimeout(()=>{
+    const msg=document.getElementById('ritualSacredMsg');
+    if(msg){msg.className='ritual-sacred-msg show';setTimeout(()=>msg.className='ritual-sacred-msg',2800);}
+  },300);
+
+  // اهتزاز + صوت
+  haptic([100,50,100,50,200]);
+
+  // زيادة العداد
+  makePromise();
+
+  // إعادة الزر بعد ٣ ثواني
+  setTimeout(()=>{
+    if(btn)btn.classList.remove('activated');
+    if(circle)circle.style.strokeDashoffset=502;
+  },3000);
+}
+
+// ══════════════════════════════════════════════
+// WHATSAPP MESSAGE HELPERS
+// ══════════════════════════════════════════════
+function insertSuggestion(text){
+  const ta=document.getElementById('messageInput');
+  if(!ta)return;
+  ta.value=text;
+  autoResizeWaTextarea(ta);
+  ta.focus();
+}
+function autoResizeWaTextarea(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,120)+'px';
+}
+
+// ══════════════════════════════════════════════
+// PHOTOS
+// ══════════════════════════════════════════════
+let photosVal=0;
+function loadPhotos(){
+  if(!isConnected)return;
+  countersRef.child('photos').on('value',snap=>{
+    photosVal=snap.val()||0;
+    const el=document.getElementById('photosCount');if(el)el.textContent=photosVal;
+    const sync=document.getElementById('photosSync');if(sync){sync.textContent='✅ متزامن';sync.className='sync-status online';}
+    if(photosVal>=100){const c=document.getElementById('celebration');if(c)c.classList.add('show');}
+  });
+}
+function addPhoto(){
+  const newVal=photosVal+1;
+  if(!isConnected){photosVal=newVal;document.getElementById('photosCount').textContent=photosVal;return;}
+  countersRef.child('photos').set(newVal).then(()=>showNotif('photos','صورة جديدة اتضافت 📸'));
+}
+
+// ══════════════════════════════════════════════
+// MESSAGES
+// ══════════════════════════════════════════════
+let _allMessages=[];
+let _messagesListener=null;
+function loadMessages(){
+  if(!isConnected)return;
+  if(_messagesListener){messagesRef.off('value',_messagesListener);_messagesListener=null;}
+  _messagesListener=function(snap){
+    const data=snap.val();
+    _allMessages=data?Object.values(data).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)):[];
+    const onMsgPage=document.getElementById('page-messages')&&document.getElementById('page-messages').classList.contains('active');
+    if(onMsgPage)renderMessages(_allMessages);
+  };
+  messagesRef.limitToLast(50).on('value',_messagesListener);
+}
+function unloadMessages(){
+  if(_messagesListener&&messagesRef){messagesRef.off('value',_messagesListener);_messagesListener=null;}
+  _allMessages=[];
+}
+function sendMessage(){
+  const input=document.getElementById('messageInput'),btn=document.getElementById('sendBtn');
+  if(!input||!input.value.trim())return;
+  const text=input.value.trim();
+  const session=JSON.parse(localStorage.getItem('loveSession')||'{}');
+  const msg={text,sender:session.name||'مجهول',timestamp:Date.now()};
+  if(!isConnected){showNotif('default','لا يوجد اتصال بالإنترنت');return;}
+  btn.disabled=true;
+  messagesRef.push(msg).then(()=>{input.value='';btn.disabled=false;showNotif('default','تم إرسال الرسالة 💌');}).catch(()=>{btn.disabled=false;});
+}
+function renderMessages(msgs){
+  const list=document.getElementById('messagesList');if(!list)return;
+  const myName=(JSON.parse(localStorage.getItem('loveSession')||'{}').name)||'';
+  list.innerHTML='';
+  if(!msgs.length){list.innerHTML='<div class="no-messages">💭 لا توجد رسائل بعد...</div>';return;}
+  msgs.forEach((msg,i)=>{
+    const isMine=(msg.sender===myName);
+    const d=msg.timestamp?new Date(msg.timestamp):new Date();
+    const text=msg.text||'';
+    const len=text.length;
+    // حجم الفقاعة حسب طول النص
+    let sizeClass='';
+    if(len<=30)sizeClass=' short-msg';
+    else if(len>=200)sizeClass=' long-msg';
+    const div=document.createElement('div');
+    div.className='msg-bubble'+(isMine?' mine':'')+sizeClass;
+    div.style.animationDelay=(i*.04)+'s';
+    const avatarColor=isMine?'var(--rose)':'var(--brown)';
+    const letter=(msg.sender||'—').charAt(0);
+    // تنسيق الوقت والتاريخ بشكل منفصل وواضح
+    const dateStr=d.toLocaleDateString('ar-EG',{day:'2-digit',month:'short',year:'numeric'});
+    const timeStr=d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+    const senderLabel=isMine
+      ? `<span class="msg-me-badge">🫵 أنت</span>`
+      : `💕 ${msg.sender||'—'}`;
+    div.innerHTML=`
+      <div class="msg-avatar" style="background:${avatarColor};">${letter}</div>
+      <div class="msg-inner">
+        <div class="msg-sender">${senderLabel}</div>
+        <div class="msg-text">${text}</div>
+        <div class="msg-time-row">
+          <div class="msg-date">📅 ${dateStr}</div>
+          <div class="msg-hour">${timeStr}</div>
+        </div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+function filterMessages(q){
+  const countEl=document.getElementById('msgSearchCount');
+  if(!q.trim()){renderMessages(_allMessages);if(countEl)countEl.textContent='';return;}
+  const lower=q.toLowerCase();
+  const filtered=_allMessages.filter(m=>(m.text||'').toLowerCase().includes(lower)||(m.sender||'').toLowerCase().includes(lower));
+  renderMessages(filtered);
+  if(countEl)countEl.textContent=filtered.length+' رسالة';
+}
+
+// ══════════════════════════════════════════════
+// PLAYLIST
+// ══════════════════════════════════════════════
+let songs=[],mpCurrentIndex=-1,mpAudio=null,mpIsPlaying=false,mpShuffle=false,mpRepeat=false;
+function loadPlaylist(){
+  if(!isConnected)return;
+  playlistRef.on('value',snap=>{
+    const data=snap.val();
+    songs=data?Object.entries(data).map(([k,v])=>({id:k,...v})):[];
+    renderSongs();
+  });
+}
+function addSong(){
+  const titleEl=document.getElementById('songTitle'),urlEl=document.getElementById('songUrl');
+  if(!urlEl||!urlEl.value.trim()){showNotif('default','أدخل رابط الأغنية');return;}
+  const song={title:titleEl.value.trim()||'أغنية جميلة 🎵',url:urlEl.value.trim(),addedAt:Date.now()};
+  if(!isConnected){songs.push(song);renderSongs();return;}
+  playlistRef.push(song).then(()=>{titleEl.value='';urlEl.value='';showNotif('default','تمت إضافة الأغنية 🎵');});
+}
+function renderSongs(){
+  const list=document.getElementById('songsList');if(!list)return;
+  if(!songs.length){list.innerHTML='<div class="no-songs">🎵 لا توجد أغاني بعد... أضف أول أغنية!</div>';return;}
+  list.innerHTML='';
+  const masonry=document.createElement('div');masonry.className='masonry';
+  songs.forEach((song,idx)=>{
+    const isActive=idx===mpCurrentIndex;
+    const isYT=song.url&&(song.url.includes('youtube')||song.url.includes('youtu.be'));
+    const card=document.createElement('div');card.className='m-card';
+    card.innerHTML=`<div class="m-visual short" style="${isActive?'background:linear-gradient(135deg,rgba(139,26,60,.2),rgba(139,26,60,.4));':''}">
+        <span style="font-size:2rem;">${isYT?'🎬':'🎵'}</span>
+        ${isActive&&mpIsPlaying?'<div class="mp-bars" style="position:absolute;bottom:.5rem;left:.5rem;"><span></span><span></span><span></span></div>':''}
+        ${isActive?'<span class="m-badge badge-rose">▶ يعزف</span>':''}
+        <div class="m-reveal"><span>${song.url}</span></div>
+      </div>
+      <div class="m-body">
+        <div class="m-meta">🎵 ${isYT?'يوتيوب':'ملف صوتي'} · ${song.addedAt?new Date(song.addedAt).toLocaleDateString('ar-EG'):''}</div>
+        <div class="m-title" style="font-size:.92rem;">${song.title}</div>
+        <div class="m-actions">
+          <button class="m-btn primary" onclick="mpPlay(${idx});return false;">▶ تشغيل</button>
+          <a class="m-btn" href="${song.url}" target="_blank">🔗 فتح</a>
+          <button class="m-btn" onclick="deleteSong(${idx},'${song.id||''}')" style="margin-right:auto;color:var(--rose);">🗑️</button>
+        </div>
+      </div>`;
+    masonry.appendChild(card);
+  });
+  list.appendChild(masonry);
+}
+function deleteSong(idx,firebaseId){
+  if(!confirm('تأكيد الحذف؟'))return;
+  if(isConnected&&firebaseId){playlistRef.child(firebaseId).remove();return;}
+  songs.splice(idx,1);renderSongs();
+}
+function mpPlay(idx){
+  mpCurrentIndex=idx;const song=songs[idx];if(!song)return;
+  const isYT=song.url&&(song.url.includes('youtube')||song.url.includes('youtu.be'));
+  document.getElementById('mpTitle').textContent=song.title;
+  document.getElementById('mpArtist').textContent=isYT?'يوتيوب 🎬':'ملف صوتي 🎵';
+  if(isYT){window.open(song.url,'_blank');return;}
+  if(mpAudio){mpAudio.pause();mpAudio=null;}
+  mpAudio=new Audio(song.url);
+  mpAudio.volume=(document.getElementById('mpVolSlider')?.value||80)/100;
+  mpAudio.play().then(()=>{mpIsPlaying=true;document.getElementById('mpPlayBtn').textContent='⏸️';document.getElementById('mpAlbumWrap').classList.add('spinning');}).catch(e=>console.warn(e));
+  mpAudio.ontimeupdate=()=>{
+    const pct=mpAudio.duration?(mpAudio.currentTime/mpAudio.duration*100):0;
+    const fill=document.getElementById('mpProgressFill');if(fill)fill.style.width=pct+'%';
+    const cur=document.getElementById('mpCurrent');if(cur)cur.textContent=fmtTime(mpAudio.currentTime);
+    const dur=document.getElementById('mpDuration');if(dur&&mpAudio.duration)dur.textContent=fmtTime(mpAudio.duration);
+  };
+  mpAudio.onended=()=>{
+    mpIsPlaying=false;document.getElementById('mpPlayBtn').textContent='▶️';document.getElementById('mpAlbumWrap').classList.remove('spinning');
+    if(mpRepeat){mpPlay(idx);return;}if(mpShuffle){mpPlay(Math.floor(Math.random()*songs.length));return;}
+    if(idx+1<songs.length)mpPlay(idx+1);
+  };
+  renderSongs();
+}
+function fmtTime(s){const m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec;}
+function mpTogglePlay(){if(!mpAudio)return;if(mpIsPlaying){mpAudio.pause();mpIsPlaying=false;document.getElementById('mpPlayBtn').textContent='▶️';document.getElementById('mpAlbumWrap').classList.remove('spinning');}else{mpAudio.play();mpIsPlaying=true;document.getElementById('mpPlayBtn').textContent='⏸️';document.getElementById('mpAlbumWrap').classList.add('spinning');}}
+function mpNext(){if(songs.length)mpPlay((mpCurrentIndex+1)%songs.length);}
+function mpPrev(){if(songs.length)mpPlay((mpCurrentIndex-1+songs.length)%songs.length);}
+function mpToggleShuffle(){mpShuffle=!mpShuffle;document.getElementById('mpShuffleBtn').classList.toggle('active',mpShuffle);}
+function mpToggleRepeat(){mpRepeat=!mpRepeat;document.getElementById('mpRepeatBtn').classList.toggle('active',mpRepeat);}
+function mpSetVolume(v){if(mpAudio)mpAudio.volume=v/100;}
+function mpSeek(e){if(!mpAudio||!mpAudio.duration)return;const rect=e.currentTarget.getBoundingClientRect();mpAudio.currentTime=((e.clientX-rect.left)/rect.width)*mpAudio.duration;}
+
+// ══════════════════════════════════════════════
+// STORY
+// ══════════════════════════════════════════════
+const DEFAULT_STORY_CHAPTERS=[
+  {title:'🎭 البداية الغريبة',text:'قصة حبنا دي غريبة شوية بصراحة. من أول ما اتعرفنا على بعض واحنا أصلاً مش عارفين مين اللي بيكلم التاني ولا بعت له ليه. كانت بداية غريبة مليانة صدف ومواقف مش محسوبة، بس في الآخر كل ده كان قدر بيجمعنا مع بعض.',isDefault:true,savedAt:0},
+  {title:'🎵 طريق الرجوع',text:'زي مثلاً لما كنت ببعتلك فيديوهات أغاني لحد ما وصلنا لتاني بلوك بينا. كانت فترة صعبة، بس الأغاني كانت هي السبيل الوحيد اللي بنتواصل من خلاله.',isDefault:true,savedAt:1},
+  {title:'💫 لحظة الاعتراف',text:'عملنا جروب تاني بينا احنا وكنا بنتكلم أكتر وتعرفنا أكتر. كانت لحظة الاعتراف بالمشاعر يوم ١/٢/٢٠٢٣، يوم مش هننساه أبداً.',isDefault:true,savedAt:2},
+  {title:'💔 الفراق',text:'أيوه كانت فترة قصيرة مكملتش شهر تقريباً، بس كانت فترة حبيتها وفاكر كل لحظة فيها. الفراق علمنا قيمة بعض.',isDefault:true,savedAt:3},
+  {title:'🌅 العودة من جديد',text:'وفعلاً قررتِ ترجعي ونكمل مع بعض. إحنا تعلمنا من كل مشكلة، وكل موقف خلانا أقوى وأقرب لبعض.',isDefault:true,savedAt:4},
+  {title:'✨ التجدد والمستقبل',text:'رجعنا لبعض يوم ٩/٨/٢٠٢٥، ومن ساعتها واحنا بنختار بعض كل يوم. 💕',isDefault:true,savedAt:5},
+  {title:'🤞 وعد الاصابع',text:'وعد الاصابع ده مش مجرد كلمة، ده عهد بينا. مهما أي حد فينا غلط، احنا مكملين. علشان دايماً اختيارنا هيكون إحنا. 💕',isDefault:true,savedAt:6}
+];
+let storyChapters=[];
+function loadStory(){
+  if(!isConnected){storyChapters=[...DEFAULT_STORY_CHAPTERS];renderStoryChapters();return;}
+  storyRef.on('value',snap=>{
+    const data=snap.val();
+    const saved=data?Object.entries(data).map(([k,v])=>({id:k,...v})):[];
+    storyChapters=[...DEFAULT_STORY_CHAPTERS,...saved.sort((a,b)=>(a.savedAt||0)-(b.savedAt||0))];
+    renderStoryChapters();
+  });
+}
+function renderStoryChapters(){
+  const container=document.getElementById('storyChapters');if(!container)return;
+  container.innerHTML='';
+  storyChapters.forEach(ch=>{
+    const card=document.createElement('div');card.className='story-card';
+    const dateStr=ch.savedAt&&!ch.isDefault?`<div class="story-card-date">🕐 ${new Date(ch.savedAt).toLocaleDateString('ar-EG')}</div>`:'';
+    const delBtn=!ch.isDefault&&ch.id?`<button onclick="deleteStoryChapter('${ch.id}')" style="float:left;background:none;border:none;color:var(--beige-dark);cursor:pointer;font-size:.82rem;padding:.2rem .4rem;border-radius:6px;transition:all .2s;" onmouseover="this.style.color='var(--rose)'" onmouseout="this.style.color='var(--beige-dark)'">🗑️ حذف</button>`:'';
+    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">${delBtn}<div class="story-card-title">${ch.title}</div></div>${dateStr}<div class="story-card-text">${ch.text}</div>`;
+    container.appendChild(card);
+  });
+}
+function saveStoryChapter(){
+  const titleEl=document.getElementById('storyChapterTitle'),textEl=document.getElementById('storyChapterText'),syncEl=document.getElementById('storySyncStatus');
+  if(!textEl||!textEl.value.trim()){showNotif('default','اكتب نصاً أولاً ✍️');return;}
+  const chapter={title:(titleEl.value.trim()||'✍️ إضافة جديدة'),text:textEl.value.trim(),savedAt:Date.now()};
+  if(!isConnected){storyChapters.push(chapter);renderStoryChapters();titleEl.value='';textEl.value='';showNotif('default','تم الحفظ محلياً 💾');return;}
+  if(syncEl)syncEl.textContent='⏳ جاري الحفظ...';
+  storyRef.push(chapter).then(()=>{
+    titleEl.value='';textEl.value='';
+    if(syncEl){syncEl.textContent='✅ تم الحفظ';syncEl.style.color='#27ae60';}
+    showNotif('default','تم إضافة الجزء للقصة 📖');
+    setTimeout(()=>{if(syncEl){syncEl.textContent='⚪ لم يتم الحفظ بعد';syncEl.style.color='';}},3000);
+  }).catch(()=>{if(syncEl)syncEl.textContent='❌ فشل الحفظ';});
+}
+function deleteStoryChapter(id){
+  if(!confirm('تأكيد حذف هذا الجزء؟'))return;
+  if(!isConnected){storyChapters=storyChapters.filter(c=>c.id!==id);renderStoryChapters();return;}
+  storyRef.child(id).remove();
+}
+
+// ══════════════════════════════════════════════
+// DATES
+// ══════════════════════════════════════════════
+const FIXED_DATES=[
+  {date:'1/2/2023',emoji:'🌸',name:'البداية — يوم الاعتراف',highlight:false},
+  {date:'25/5/2023',emoji:'💞',name:'الرجوع الثاني',highlight:false},
+  {date:'24/2/2026',emoji:'❤️',name:'العلاقة أهم',highlight:true},
+  {date:'28/2/2026',emoji:'💔',name:'الفراق الأول',highlight:false},
+  {date:'6/6/2025',emoji:'🌅',name:'بداية الرجوع الحقيقي',highlight:false},
+  {date:'9/8/2025',emoji:'💫',name:'تجدد الحب — العودة للبعض',highlight:true}
+];
+let savedDatesNotes={},extraDates=[];
+function loadDates(){
+  if(!isConnected){renderFixedDates();return;}
+  datesRef.on('value',snap=>{
+    const data=snap.val()||{};
+    savedDatesNotes=data.notes||{};
+    extraDates=data.extra?Object.entries(data.extra).map(([k,v])=>({id:k,...v})):[];
+    renderFixedDates();
+  });
+}
+function renderFixedDates(){
+  const container=document.getElementById('fixedDatesContainer');if(!container)return;
+  container.innerHTML='';
+  FIXED_DATES.forEach((d,idx)=>{
+    const key='fixed_'+idx,note=savedDatesNotes[key]||'';
+    const card=document.createElement('div');card.className='date-card m-card';
+    card.innerHTML=`<div class="m-visual short" style="background:linear-gradient(135deg,var(--cream-dark),var(--beige));">
+        <span style="font-size:2rem;">${d.emoji}</span>
+        ${d.highlight?'<span class="m-badge badge-gold">⭐ مميز</span>':''}
+      </div>
+      <div class="m-body">
+        <div class="m-meta">📅 ${d.date}</div>
+        <div class="m-title" style="font-size:.95rem;">${d.name}</div>
+        <textarea class="date-input" id="note-${key}" placeholder="✍️ اكتب ذكرياتك...">${note}</textarea>
+        <div class="m-actions">
+          <button class="m-btn primary" onclick="saveDateNote('${key}')">💾 حفظ</button>
+          <span id="sync-${key}" style="font-size:.72rem;color:var(--text-light);"></span>
+        </div>
+      </div>`;
+    container.appendChild(card);
+  });
+  extraDates.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(d=>{
+    const card=document.createElement('div');card.className='date-card m-card';
+    card.innerHTML=`<div class="m-visual short" style="background:linear-gradient(135deg,rgba(139,26,60,.1),rgba(107,58,42,.08));">
+        <span style="font-size:2rem;">${d.emoji||'📅'}</span>
+        <span class="m-badge badge-rose">مضاف</span>
+      </div>
+      <div class="m-body">
+        <div class="m-meta">📅 ${d.date}</div>
+        <div class="m-title" style="font-size:.95rem;">${d.name}</div>
+        ${d.note?`<div class="m-text">${d.note}</div>`:''}
+        ${d.savedAt?`<div class="m-meta" style="margin-top:.4rem;">🕐 ${new Date(d.savedAt).toLocaleDateString('ar-EG')}</div>`:''}
+        ${d.id?`<div class="m-actions"><button class="m-btn" onclick="deleteExtraDate('${d.id}')" style="color:var(--rose);">🗑️ حذف</button></div>`:''}
+      </div>`;
+    container.appendChild(card);
+  });
+}
+function saveDateNote(key){
+  const textarea=document.getElementById('note-'+key),syncEl=document.getElementById('sync-'+key);
+  if(!textarea)return;
+  const note=textarea.value.trim();
+  if(!isConnected){showNotif('default','تم الحفظ محلياً');return;}
+  if(syncEl)syncEl.textContent='⏳ جاري الحفظ...';
+  datesRef.child('notes/'+key).set(note).then(()=>{
+    if(syncEl){syncEl.textContent='✅ محفوظ';syncEl.style.color='#27ae60';}
+    showNotif('default','تم حفظ الملاحظة 📅');
+    setTimeout(()=>{if(syncEl){syncEl.textContent='';syncEl.style.color='';}},3000);
+  }).catch(()=>{if(syncEl)syncEl.textContent='❌ فشل';});
+}
+function addNewDate(){
+  const dateEl=document.getElementById('newDateVal'),nameEl=document.getElementById('newDateName'),emojiEl=document.getElementById('newDateEmoji'),noteEl=document.getElementById('newDateNote');
+  if(!dateEl.value||!nameEl.value.trim()){showNotif('default','اكتب التاريخ والاسم أولاً 📅');return;}
+  const[y,m,d]=dateEl.value.split('-');
+  const entry={date:`${d}/${m}/${y}`,name:nameEl.value.trim(),emoji:emojiEl.value.trim()||'📅',note:noteEl.value.trim(),savedAt:Date.now()};
+  if(!isConnected){extraDates.push(entry);renderFixedDates();dateEl.value='';nameEl.value='';emojiEl.value='';noteEl.value='';return;}
+  datesRef.child('extra').push(entry).then(()=>{dateEl.value='';nameEl.value='';emojiEl.value='';noteEl.value='';showNotif('default','تم إضافة التاريخ 📅');});
+}
+function deleteExtraDate(id){
+  if(!confirm('تأكيد الحذف؟'))return;
+  if(!isConnected){extraDates=extraDates.filter(d=>d.id!==id);renderFixedDates();return;}
+  datesRef.child('extra/'+id).remove();
+}
+
+// ══════════════════════════════════════════════
+// CANVAS
+// ══════════════════════════════════════════════
+let canvasCtx=null,isDrawing=false,currentTool='pen',currentColor='#8B1A3C',undoStack=[];
+let savedColors=JSON.parse(localStorage.getItem('savedColors')||'[]');
+function initCanvas(){
+  const canvas=document.getElementById('loveCanvas');if(!canvas||canvasCtx)return;
+  canvasCtx=canvas.getContext('2d');
+  const wrapper=canvas.parentElement;if(wrapper){canvas.width=wrapper.clientWidth||760;canvas.height=Math.min(420,window.innerHeight*.55);}
+  canvasCtx.fillStyle='#ffffff';canvasCtx.fillRect(0,0,canvas.width,canvas.height);
+  const onStart=(e)=>{e.preventDefault();isDrawing=true;const pos=getPos(e,canvas);if(currentTool==='fill'){floodFill(pos.x,pos.y);return;}if(currentTool==='text'){addText(pos.x,pos.y);return;}saveUndo();canvasCtx.beginPath();canvasCtx.moveTo(pos.x,pos.y);};
+  const onMove=(e)=>{if(!isDrawing)return;e.preventDefault();const pos=getPos(e,canvas);const size=parseInt(document.getElementById('brushSize')?.value||6);const opacity=parseInt(document.getElementById('brushOpacity')?.value||100)/100;canvasCtx.globalAlpha=opacity;if(currentTool==='eraser'){canvasCtx.globalCompositeOperation='destination-out';canvasCtx.lineWidth=size*3;}else{canvasCtx.globalCompositeOperation='source-over';canvasCtx.lineWidth=currentTool==='brush'?size*2:size;canvasCtx.strokeStyle=currentColor;canvasCtx.lineCap='round';canvasCtx.lineJoin='round';}canvasCtx.lineTo(pos.x,pos.y);canvasCtx.stroke();};
+  const onEnd=()=>{isDrawing=false;canvasCtx.globalAlpha=1;canvasCtx.globalCompositeOperation='source-over';};
+  canvas.addEventListener('mousedown',onStart);canvas.addEventListener('mousemove',onMove);canvas.addEventListener('mouseup',onEnd);canvas.addEventListener('mouseleave',onEnd);
+  canvas.addEventListener('touchstart',onStart,{passive:false});canvas.addEventListener('touchmove',onMove,{passive:false});canvas.addEventListener('touchend',onEnd);
+  renderSavedColors();loadCanvasFromDB();
+}
+function destroyCanvas(){canvasCtx=null;isDrawing=false;}
+function getPos(e,canvas){const rect=canvas.getBoundingClientRect(),scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height;if(e.touches&&e.touches[0])return{x:(e.touches[0].clientX-rect.left)*scaleX,y:(e.touches[0].clientY-rect.top)*scaleY};return{x:(e.clientX-rect.left)*scaleX,y:(e.clientY-rect.top)*scaleY};}
+function setTool(tool){currentTool=tool;document.querySelectorAll('.canvas-tool-btn').forEach(b=>b.classList.remove('active'));const btn=document.getElementById('tool-'+tool);if(btn)btn.classList.add('active');}
+function setColor(color,el){currentColor=color;document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));if(el)el.classList.add('active');const w=document.getElementById('colorWheel');if(w)w.value=color;}
+function setColorFromWheel(color){currentColor=color;document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));}
+function saveUndo(){const c=document.getElementById('loveCanvas');if(!c||!canvasCtx)return;if(undoStack.length>20)undoStack.shift();undoStack.push(canvasCtx.getImageData(0,0,c.width,c.height));}
+function undoCanvas(){if(!undoStack.length||!canvasCtx)return;canvasCtx.putImageData(undoStack.pop(),0,0);}
+function clearCanvas(){const c=document.getElementById('loveCanvas');if(!c||!canvasCtx)return;saveUndo();canvasCtx.fillStyle='#ffffff';canvasCtx.fillRect(0,0,c.width,c.height);}
+function saveCanvas(){const c=document.getElementById('loveCanvas');if(!c)return;const a=document.createElement('a');a.download='لوحتنا-المشتركة.png';a.href=c.toDataURL('image/png');a.click();}
+function saveCanvasToDB(){const c=document.getElementById('loveCanvas');if(!c||!isConnected){showNotif('default','لا يوجد اتصال');return;}canvasRef.set({data:c.toDataURL('image/jpeg',.6),savedAt:Date.now()}).then(()=>showNotif('default','تم حفظ اللوحة ✅')).catch(()=>showNotif('default','خطأ في الحفظ'));}
+function loadCanvasFromDB(){if(!isConnected||!canvasCtx)return;canvasRef.once('value',snap=>{const d=snap.val();if(!d||!d.data)return;const img=new Image();img.onload=()=>{const c=document.getElementById('loveCanvas');if(c&&canvasCtx)canvasCtx.drawImage(img,0,0,c.width,c.height);};img.src=d.data;});}
+function floodFill(x,y){const c=document.getElementById('loveCanvas');if(!c||!canvasCtx)return;const imgData=canvasCtx.getImageData(0,0,c.width,c.height),data=imgData.data;const tC=getPixel(data,Math.floor(x),Math.floor(y),c.width),fC=hexToRgb(currentColor);if(!fC||colorsMatch(tC,fC))return;const stack=[[Math.floor(x),Math.floor(y)]];while(stack.length){const[px,py]=stack.pop();if(px<0||px>=c.width||py<0||py>=c.height)continue;if(!colorsMatch(getPixel(data,px,py,c.width),tC))continue;setPixel(data,px,py,c.width,fC);stack.push([px+1,py],[px-1,py],[px,py+1],[px,py-1]);}canvasCtx.putImageData(imgData,0,0);}
+function getPixel(d,x,y,w){const i=(y*w+x)*4;return[d[i],d[i+1],d[i+2],d[i+3]];}
+function setPixel(d,x,y,w,c){const i=(y*w+x)*4;d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];d[i+3]=255;}
+function colorsMatch(a,b){return Math.abs(a[0]-b[0])<30&&Math.abs(a[1]-b[1])<30&&Math.abs(a[2]-b[2])<30;}
+function hexToRgb(hex){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:null;}
+function addText(x,y){const text=prompt('اكتب النص:');if(!text||!canvasCtx)return;saveUndo();canvasCtx.font='20px Cairo, Arial';canvasCtx.fillStyle=currentColor;canvasCtx.textAlign='right';canvasCtx.fillText(text,x,y);}
+function saveCurrentColor(){if(!savedColors.includes(currentColor)){savedColors.push(currentColor);if(savedColors.length>8)savedColors.shift();localStorage.setItem('savedColors',JSON.stringify(savedColors));renderSavedColors();}}
+function renderSavedColors(){const g=document.getElementById('savedColorsGrid');if(!g)return;g.innerHTML='';savedColors.forEach(c=>{const d=document.createElement('div');d.className='color-swatch';d.style.background=c;d.onclick=()=>setColor(c,d);g.appendChild(d);});}
+function applyPalette(name){const palettes={romantic:['#8B1A3C','#C8963E','#F5ECD7','#D4B896','#6B3A2A'],ocean:['#0077b6','#00b4d8','#90e0ef','#023e8a','#48cae4'],sunset:['#ff6b6b','#ffa06b','#ffd166','#ef8c47','#d63031']};const colors=palettes[name];if(!colors)return;const g=document.getElementById('quickColors');if(!g)return;g.innerHTML='';colors.forEach(c=>{const d=document.createElement('div');d.className='color-swatch';d.style.background=c;d.onclick=()=>setColor(c,d);g.appendChild(d);});setColor(colors[0],g.firstChild);}
+
+// ══════════════════════════════════════════════
+// READING MODE
+// ══════════════════════════════════════════════
+function openReadingMode(){
+  const overlay=document.getElementById('readingOverlay'),content=document.getElementById('readingContent');
+  if(!overlay||!content)return;
+  content.innerHTML=`<h1 style="font-family:'Noto Naskh Arabic',serif;text-align:center;color:var(--rose);font-size:2rem;margin-bottom:.5rem;">قصتنا 💕</h1><div style="text-align:center;color:var(--gold);margin-bottom:2rem;">خالد وفاطمة</div>`;
+  storyChapters.forEach(ch=>{
+    const sec=document.createElement('div');sec.className='reading-chapter';
+    sec.innerHTML=`<div class="reading-chapter-title">${ch.title}</div><div class="reading-chapter-text">${ch.text}</div>`;
+    content.appendChild(sec);
+  });
+  overlay.classList.add('show');document.body.style.overflow='hidden';
+}
+function closeReadingMode(){
+  const overlay=document.getElementById('readingOverlay');if(overlay)overlay.classList.remove('show');document.body.style.overflow='';
+}
+function exportStoryPDF(){
+  const w=window.open('','_blank','width=800,height=700');
+  if(!w){showNotif('default','السماح بالنوافذ المنبثقة 📄');return;}
+  const chapters=storyChapters.map(ch=>`<div style="margin-bottom:2.5rem;page-break-inside:avoid;"><h2 style="font-family:'Noto Naskh Arabic',serif;color:#8B1A3C;font-size:1.4rem;border-right:4px solid #C8963E;padding-right:1rem;margin-bottom:.8rem;">${ch.title}</h2><p style="font-family:'Noto Naskh Arabic',serif;font-size:1.1rem;line-height:2.2;color:#3D1F10;text-align:justify;">${ch.text}</p></div>`).join('');
+  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet"><style>@page{margin:2.5cm;}body{font-family:'Noto Naskh Arabic',serif;background:#FFFDF7;color:#3D1F10;max-width:700px;margin:0 auto;padding:2rem;}.cover{text-align:center;page-break-after:always;padding:4rem 0;}h1{font-size:2.5rem;color:#8B1A3C;}.subtitle{color:#C8963E;font-size:1.2rem;}</style><title>قصتنا</title></head><body><div class="cover"><div style="font-size:4rem;margin-bottom:1rem;">💕</div><h1>بيت الذكريات</h1><div class="subtitle">قصة خالد وفاطمة</div><div style="color:#C8963E;font-size:1.5rem;margin:2rem 0;">❧ ❧ ❧</div><p style="color:#6B4A3A;line-height:2;">مهما حصل، احنا مكملين...<br>كل يوم بنختار بعض.</p></div>${chapters}<div style="text-align:center;margin-top:4rem;padding-top:2rem;border-top:1px solid #D4B896;"><span style="color:#C8963E;font-size:.9rem;">🏡 بيت الذكريات — ${new Date().toLocaleDateString('ar-EG')}</span></div><script>window.onload=()=>{window.print();}<\/script></body></html>`);
+  w.document.close();
+}
+
+// ══════════════════════════════════════════════
+// PARTICLES
+// ══════════════════════════════════════════════
+let particleAnimFrame=null;
+function initParticles(){
+  const canvas=document.getElementById('particlesCanvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  const pts=Array.from({length:35},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,r:Math.random()*2.5+1,op:Math.random()*.4+.1,pulse:Math.random()*Math.PI*2}));
+  if(particleAnimFrame)cancelAnimationFrame(particleAnimFrame);
+  function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.pulse+=.02;if(p.x<0||p.x>canvas.width)p.vx*=-1;if(p.y<0||p.y>canvas.height)p.vy*=-1;const op=p.op+Math.sin(p.pulse)*.1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=isDark?`rgba(200,150,62,${op})`:`rgba(139,26,60,${op})`;ctx.fill();});particleAnimFrame=requestAnimationFrame(draw);}
+  draw();
+}
+window.addEventListener('resize',()=>{const c=document.getElementById('particlesCanvas');if(c){c.width=window.innerWidth;c.height=window.innerHeight;}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(particleAnimFrame){cancelAnimationFrame(particleAnimFrame);particleAnimFrame=null;}}else{initParticles();}});
+initParticles();
+
+// ══════════════════════════════════════════════
+// SCROLL REVEAL
+// ══════════════════════════════════════════════
+function observeSR(){
+  const io=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target);}});},{threshold:0.12});
+  document.querySelectorAll('.sr:not(.visible)').forEach(el=>io.observe(el));
+}
+observeSR();
+document.addEventListener('click',()=>setTimeout(observeSR,200));
+
+// ══════════════════════════════════════════════
+// SWIPE NAVIGATION (mobile)
+// ══════════════════════════════════════════════
+(function(){
+  const mainPages=['home','messages','story','dates'];
+  let touchStartX=0,touchStartY=0,touchStartTime=0;
+  document.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;touchStartTime=Date.now();},{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-touchStartX,dy=e.changedTouches[0].clientY-touchStartY,dt=Date.now()-touchStartTime;
+    if(dt>400||Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*.8)return;
+    if(dx>80&&touchStartX<40){if(localStorage.getItem('loveSession'))showPage('home');return;}
+    const activePage=document.querySelector('.page.active');if(!activePage)return;
+    const currentId=activePage.id.replace('page-',''),idx=mainPages.indexOf(currentId);if(idx===-1)return;
+    if(dx<-60&&idx<mainPages.length-1)showPage(mainPages[idx+1]);
+    else if(dx>60&&idx>0)showPage(mainPages[idx-1]);
+  },{passive:true});
+})();
+
+// ══════════════════════════════════════════════════════════════════
+// HEART PARTICLE FORMATION
+// ══════════════════════════════════════════════════════════════════
+let heartFormationActive = false;
+let heartParticleData = null;
+
+function triggerHeartFormation() {
+  if (heartFormationActive) return;
+  heartFormationActive = true;
+  const btn = document.getElementById('hpbBtn');
+  if (btn) { btn.style.transform = 'scale(1.2)'; setTimeout(() => btn.style.transform = '', 400); }
+
+  const canvas = document.getElementById('particlesCanvas');
+  if (!canvas) { heartFormationActive = false; return; }
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H * 0.45;
+  const scale = Math.min(W, H) * 0.035;
+
+  // Generate heart target points
+  const targets = [];
+  for (let i = 0; i < 35; i++) {
+    const t = (i / 35) * Math.PI * 2;
+    const hx = 16 * Math.pow(Math.sin(t), 3);
+    const hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+    targets.push({ x: cx + hx * scale, y: cy + hy * scale });
+  }
+
+  // Get current particle positions from current animation
+  cancelAnimationFrame(particleAnimFrame);
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  // Create temp particles at random positions
+  const pts = Array.from({length:35}, (_, i) => ({
+    x: Math.random() * W, y: Math.random() * H,
+    tx: targets[i].x, ty: targets[i].y,
+    r: Math.random() * 2 + 1.5,
+    op: Math.random() * 0.4 + 0.4,
+    phase: 0
+  }));
+
+  let frame = 0;
+  const GATHER = 60, HOLD = 90, DISPERSE = 50;
+
+  function drawHeart() {
+    ctx.clearRect(0, 0, W, H);
+    frame++;
+    pts.forEach((p, i) => {
+      let x = p.x, y = p.y;
+      if (frame <= GATHER) {
+        const ease = 1 - Math.pow(1 - frame / GATHER, 3);
+        x = p.x + (p.tx - p.x) * ease;
+        y = p.y + (p.ty - p.y) * ease;
+        p.cx = x; p.cy = y;
+      } else if (frame <= GATHER + HOLD) {
+        p.phase = (p.phase || 0) + 0.08;
+        x = p.tx + Math.sin(p.phase + i) * 1.5;
+        y = p.ty + Math.cos(p.phase + i * 0.7) * 1.5;
+        p.cx = x; p.cy = y;
+      } else {
+        if (!p.dispX) {
+          p.dispX = (Math.random() - 0.5) * W * 0.8;
+          p.dispY = (Math.random() - 0.5) * H * 0.8;
+        }
+        const t2 = (frame - GATHER - HOLD) / DISPERSE;
+        const ease2 = t2 * t2;
+        x = (p.cx || p.tx) + p.dispX * ease2;
+        y = (p.cy || p.ty) + p.dispY * ease2;
+      }
+
+      const glow = frame > GATHER && frame <= GATHER + HOLD;
+      const col = isDark ? `rgba(226,180,90,${p.op})` : `rgba(139,26,60,${p.op})`;
+      if (glow) {
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = isDark ? 'rgba(226,180,90,.6)' : 'rgba(139,26,60,.5)';
+      }
+      ctx.beginPath();
+      ctx.arc(x, y, glow ? p.r * 1.6 : p.r, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    if (frame < GATHER + HOLD + DISPERSE) {
+      particleAnimFrame = requestAnimationFrame(drawHeart);
+    } else {
+      heartFormationActive = false;
+      initParticles(); // resume normal
+    }
+  }
+  particleAnimFrame = requestAnimationFrame(drawHeart);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DAILY CARD
+// ══════════════════════════════════════════════════════════════════
+const dailyRef = isConnected ? database.ref('daily') : null;
+let dailyCurrentMood = 'romance';
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+
+function initDailyCard() {
+  // Set day badge
+  const dayBadge = document.getElementById('dailyDayBadge');
+  if (dayBadge) {
+    const days = Math.floor((Date.now() - new Date('2025-08-09').getTime()) / 86400000);
+    dayBadge.textContent = 'اليوم ' + days.toLocaleString('ar-EG');
+  }
+
+  const key = todayKey();
+
+  // Try Firebase first
+  if (dailyRef) {
+    dailyRef.child(key).once('value').then(snap => {
+      const d = snap.val();
+      if (d) {
+        applyDailyData(d.mood || 'romance', d.event || '');
+      } else {
+        loadDailyLocal();
+      }
+    }).catch(() => loadDailyLocal());
+  } else {
+    loadDailyLocal();
+  }
+}
+
+function loadDailyLocal() {
+  try {
+    const raw = localStorage.getItem('daily_' + todayKey());
+    if (raw) {
+      const d = JSON.parse(raw);
+      applyDailyData(d.mood || 'romance', d.event || '');
+    }
+  } catch(e) {}
+}
+
+function applyDailyData(mood, event) {
+  dailyCurrentMood = mood;
+  const card = document.getElementById('dailyCard');
+  if (card) {
+    card.className = 'daily-card mood-' + mood;
+  }
+  document.querySelectorAll('.mood-opt').forEach(b => {
+    b.classList.toggle('sel', b.dataset.mood === mood);
+  });
+  const box = document.getElementById('dailyEventBox');
+  if (box && event) box.value = event;
+  const sync = document.getElementById('dailySyncLabel');
+  if (sync) { sync.textContent = '✅ محفوظ'; sync.className = 'daily-sync ok'; }
+}
+
+function setDailyMood(mood) {
+  dailyCurrentMood = mood;
+  const card = document.getElementById('dailyCard');
+  if (card) card.className = 'daily-card mood-' + mood;
+  document.querySelectorAll('.mood-opt').forEach(b => {
+    b.classList.toggle('sel', b.dataset.mood === mood);
+  });
+  dailyUnsaved();
+}
+
+function dailyUnsaved() {
+  const sync = document.getElementById('dailySyncLabel');
+  if (sync) { sync.textContent = '✏️ غير محفوظ'; sync.className = 'daily-sync'; }
+}
+
+function saveDailyCard() {
+  const key = todayKey();
+  const eventText = (document.getElementById('dailyEventBox').value || '').trim();
+  const data = { mood: dailyCurrentMood, event: eventText, ts: Date.now() };
+
+  localStorage.setItem('daily_' + key, JSON.stringify(data));
+
+  if (dailyRef) {
+    dailyRef.child(key).set(data).then(() => {
+      const sync = document.getElementById('dailySyncLabel');
+      if (sync) { sync.textContent = '☁️ محفوظ على السحابة ✅'; sync.className = 'daily-sync ok'; }
+    }).catch(() => {
+      const sync = document.getElementById('dailySyncLabel');
+      if (sync) { sync.textContent = '💾 محفوظ محلياً'; sync.className = 'daily-sync ok'; }
+    });
+  } else {
+    const sync = document.getElementById('dailySyncLabel');
+    if (sync) { sync.textContent = '💾 محفوظ'; sync.className = 'daily-sync ok'; }
+  }
+}
+
+// Init daily card when home page loads
+initDailyCard();
+
+</script>
+</body>
+</html>
